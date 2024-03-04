@@ -265,6 +265,8 @@ def main():
     #rawECG.crop(tmin = 630.0, tmax=690.0)
 
     startTime_filter = time.time()
+    # TODO Check if this is already done by BrainFlow Filtering
+    # TODO Note down that this is necessary (bandpass filter EEG before ICA to prevent slow downward shift) (?)
     # apply bandpass filter(?) on EEG data (before ICA) to prevent slow downward(?) shift (?)
     filt_rawEEG = rawEEG.copy().filter(l_freq=1.0, h_freq=50.0)
     endTime_filter = time.time() - startTime_filter
