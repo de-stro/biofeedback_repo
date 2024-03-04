@@ -2,6 +2,7 @@
     script to perform offline ICA Analysis in MNE on local (earlier recorded) EEG-Session (with parallel chest-ECG on
     channel 8, in BrainFlow Format (CSV)
 """
+
 import operator
 import math 
 import pywt
@@ -20,22 +21,27 @@ import os
 import mne
 from mne.preprocessing import ICA, corrmap, create_ecg_epochs, create_eog_epochs
 
-filepaths = []
-path_dir_01 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Adele_2024-02-01_19-31-18'
-name_file_01 = 'BrainFlow-RAW_2024-02-01_19-31-18_0.csv'
-filepaths.append(os.path.join(path_dir_01, name_file_01))
-path_dir_02 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Dennis_2024-02-02_12-11-33'
-name_file_02 = 'BrainFlow-RAW_2024-02-02_12-11-33_0.csv'
-filepaths.append(os.path.join(path_dir_02, name_file_02))
-path_dir_03 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Linn_2024-02-03_18-07-41'
-name_file_03 = 'BrainFlow-RAW_2024-02-03_18-07-41_0.csv'
-filepaths.append(os.path.join(path_dir_03, name_file_03))
-path_dir_04 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Felix_2024-02-05_21-16-18'
-name_file_04 = 'BrainFlow-RAW_2024-02-05_21-16-18_0.csv'
-filepaths.append(os.path.join(path_dir_04, name_file_04))
-path_dir_05 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Gabriel_2024-02-09_11-30-48'
-name_file_05 = 'BrainFlow-RAW_2024-02-09_11-30-48_0.csv'
-filepaths.append(os.path.join(path_dir_05, name_file_05))
+import data.offlinedata as offD
+
+''' 
+    TODO Delete this
+    filepaths = []
+    path_dir_01 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Adele_2024-02-01_19-31-18'
+    name_file_01 = 'BrainFlow-RAW_2024-02-01_19-31-18_0.csv'
+    filepaths.append(os.path.join(path_dir_01, name_file_01))
+    path_dir_02 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Dennis_2024-02-02_12-11-33'
+    name_file_02 = 'BrainFlow-RAW_2024-02-02_12-11-33_0.csv'
+    filepaths.append(os.path.join(path_dir_02, name_file_02))
+    path_dir_03 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Linn_2024-02-03_18-07-41'
+    name_file_03 = 'BrainFlow-RAW_2024-02-03_18-07-41_0.csv'
+    filepaths.append(os.path.join(path_dir_03, name_file_03))
+    path_dir_04 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Felix_2024-02-05_21-16-18'
+    name_file_04 = 'BrainFlow-RAW_2024-02-05_21-16-18_0.csv'
+    filepaths.append(os.path.join(path_dir_04, name_file_04))
+    path_dir_05 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Gabriel_2024-02-09_11-30-48'
+    name_file_05 = 'BrainFlow-RAW_2024-02-09_11-30-48_0.csv'
+    filepaths.append(os.path.join(path_dir_05, name_file_05))
+'''
 
 board_id = BoardIds.CYTON_BOARD
 sampling_rate = BoardShim.get_sampling_rate(board_id)
@@ -268,11 +274,12 @@ def main():
 
     # initiate test recording data objects as list
     dataRecordings = []
+    filepaths = offD.getFilepaths()
     '''
     for path in filepaths:
         dataRecordings.append(RecordingData(path))
     '''
-    dataRecordings.append(RecordingData(filepaths[1]))
+    dataRecordings.append(offD.RecordingData(filepaths[1]))
     ########################################
     
 
@@ -475,28 +482,6 @@ def main():
 
     snr_rssq = calc_snr_RSSQ_from_epochs(epoch[0], epoch[1])
     print("SNR (avg RSSQ) is ", snr_rssq, "dB")
-
-    
-
-
-
-class RecordingData:
-    def __init__(self, filepath):
-        self.filepath = filepath
-        # load OpenBCI recording (CSV-file in BrainFlow Format)
-        self.loaded_data =  DataFilter.read_file(filepath)
-        self.eeg_data = self.loaded_data[eeg_channels, :]
-        self.ecg_data = self.loaded_data[ecg_channel, :]
-
-    def getECG(self):
-         # BrainFlow returns uV!!
-        return self.ecg_data
-    
-    def getEEG(self):
-         # BrainFlow returns uV!!
-        return self.eeg_data
-
-
     
     
 if __name__ == "__main__":
