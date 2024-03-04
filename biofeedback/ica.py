@@ -195,6 +195,7 @@ def epoch_RSSQ(epoch):
     return RSSQ
 
 
+
 ''' Calculate SNR of noisy signal epoched around heart beats / R-peaks detected (in noisy signal, no reference)
 '''
 def calculate_snr_PeakToPeak_from_epochs(qrs_epochs, noise_epochs):
