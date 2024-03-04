@@ -22,6 +22,7 @@ import mne
 from mne.preprocessing import ICA, corrmap, create_ecg_epochs, create_eog_epochs
 
 import data.offlinedata as offD
+import data.preprocessing as prepro
 
 ''' 
     TODO Delete this
@@ -65,17 +66,19 @@ def extract_heartbeats(cleaned, peaks, sampling_rate=None):
     heartbeats = nk.epochs_to_df(heartbeats)
     return heartbeats
 
-def preprocessData(data_2D):
+''' TODO Delete this
+    def preprocessData(data_2D):
 
-    # perform filtering for each row ( = channel) of 2D data array
-    for channel in range(data_2D.shape[0]):
-        # filters work in-place
-        DataFilter.detrend(data_2D[channel], DetrendOperations.CONSTANT.value)
-        DataFilter.perform_bandpass(data_2D[channel], sampling_rate, 3.0, 45.0, 2, FilterTypes.BUTTERWORTH.value, 0)
-        DataFilter.perform_bandstop(data_2D[channel], sampling_rate, 48.0, 52.0, 2, FilterTypes.BUTTERWORTH.value, 0)
-        DataFilter.perform_bandstop(data_2D[channel], sampling_rate, 58.0, 62.0, 2, FilterTypes.BUTTERWORTH.value, 0)
-    
-    return data_2D
+        # perform filtering for each row ( = channel) of 2D data array
+        for channel in range(data_2D.shape[0]):
+            # filters work in-place
+            DataFilter.detrend(data_2D[channel], DetrendOperations.CONSTANT.value)
+            DataFilter.perform_bandpass(data_2D[channel], sampling_rate, 3.0, 45.0, 2, FilterTypes.BUTTERWORTH.value, 0)
+            DataFilter.perform_bandstop(data_2D[channel], sampling_rate, 48.0, 52.0, 2, FilterTypes.BUTTERWORTH.value, 0)
+            DataFilter.perform_bandstop(data_2D[channel], sampling_rate, 58.0, 62.0, 2, FilterTypes.BUTTERWORTH.value, 0)
+        
+        return data_2D
+'''
 
 # Creating MNE objects from brainflow data array
 def createObjectMNE(type: str, data_2D):
@@ -285,8 +288,8 @@ def main():
 
     ### perform offline ICA Analysis on loaded and (pre-) filtered (BrainFlow) EEG data of Test Recording No.1
     startTime_prepro = time.time()
-    rawEEG = createObjectMNE('eeg', preprocessData(dataRecordings[0].getEEG()))
-    rawECG = createObjectMNE('ecg', preprocessData(dataRecordings[0].getECG()))
+    rawEEG = createObjectMNE('eeg', prepro.preprocessData(dataRecordings[0].getEEG()))
+    rawECG = createObjectMNE('ecg', prepro.preprocessData(dataRecordings[0].getECG()))
     endTime_prepro = time.time() - startTime_prepro
     
 
