@@ -11,38 +11,13 @@ import time
 import matplotlib.pyplot as plt
 
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, LogLevels, BoardIds
-from brainflow.data_filter import DataFilter
-from brainflow.data_filter import FilterTypes
-from brainflow.data_filter import DetrendOperations
 
 import neurokit2 as nk
-
-import os
 import mne
 from mne.preprocessing import ICA, corrmap, create_ecg_epochs, create_eog_epochs
 
 import data.offlinedata as offD
 import data.preprocessing as prepro
-
-''' 
-    TODO Delete this
-    filepaths = []
-    path_dir_01 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Adele_2024-02-01_19-31-18'
-    name_file_01 = 'BrainFlow-RAW_2024-02-01_19-31-18_0.csv'
-    filepaths.append(os.path.join(path_dir_01, name_file_01))
-    path_dir_02 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Dennis_2024-02-02_12-11-33'
-    name_file_02 = 'BrainFlow-RAW_2024-02-02_12-11-33_0.csv'
-    filepaths.append(os.path.join(path_dir_02, name_file_02))
-    path_dir_03 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Linn_2024-02-03_18-07-41'
-    name_file_03 = 'BrainFlow-RAW_2024-02-03_18-07-41_0.csv'
-    filepaths.append(os.path.join(path_dir_03, name_file_03))
-    path_dir_04 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Felix_2024-02-05_21-16-18'
-    name_file_04 = 'BrainFlow-RAW_2024-02-05_21-16-18_0.csv'
-    filepaths.append(os.path.join(path_dir_04, name_file_04))
-    path_dir_05 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Gabriel_2024-02-09_11-30-48'
-    name_file_05 = 'BrainFlow-RAW_2024-02-09_11-30-48_0.csv'
-    filepaths.append(os.path.join(path_dir_05, name_file_05))
-'''
 
 board_id = BoardIds.CYTON_BOARD
 sampling_rate = BoardShim.get_sampling_rate(board_id)
@@ -65,20 +40,6 @@ def extract_heartbeats(cleaned, peaks, sampling_rate=None):
                                   sampling_rate=sampling_rate)
     heartbeats = nk.epochs_to_df(heartbeats)
     return heartbeats
-
-''' TODO Delete this
-    def preprocessData(data_2D):
-
-        # perform filtering for each row ( = channel) of 2D data array
-        for channel in range(data_2D.shape[0]):
-            # filters work in-place
-            DataFilter.detrend(data_2D[channel], DetrendOperations.CONSTANT.value)
-            DataFilter.perform_bandpass(data_2D[channel], sampling_rate, 3.0, 45.0, 2, FilterTypes.BUTTERWORTH.value, 0)
-            DataFilter.perform_bandstop(data_2D[channel], sampling_rate, 48.0, 52.0, 2, FilterTypes.BUTTERWORTH.value, 0)
-            DataFilter.perform_bandstop(data_2D[channel], sampling_rate, 58.0, 62.0, 2, FilterTypes.BUTTERWORTH.value, 0)
-        
-        return data_2D
-'''
 
 # Creating MNE objects from brainflow data array
 def createObjectMNE(type: str, data_2D):
