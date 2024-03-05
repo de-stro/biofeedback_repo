@@ -315,8 +315,8 @@ def main():
     print("len (timepoints) of rawResult: ", len(rawResult))
     #rawResult.plot()
     rawECG.add_channels([rawResult])
-    '''rawECG.plot(title = "rawECG (fused)")
-    '''
+    rawECG.plot(title = "rawECG (fused)")
+    
     #rawComponents.plot()
     #rawResult.plot() 
 
@@ -351,41 +351,20 @@ def main():
     #print("SNR (IDUN) for 1 comp:", calculate_snr_Idun(components[i]))
     print("##########################")
 
-    ################################# CALCULATE CORRELATION WITHOUT REF ECG ##################################
-    ecg_template = nk.signal_resample(nk.data(dataset="ecg_1000hz"), desired_length = 1, sampling_rate = 1000, desired_sampling_rate = 250, method = "FFT")
-    nk.signal_plot(ecg_template[0:10000], sampling_rate=1000)
+
+    
+    # plot the extracted ecg related component
+    fig, axs = plt.subplots(componentAmountConsidered + 1, 1)
+    axs[0].plot(new_ecg)
+    axs[0].set_title('clean ecg')
+
+    for j in range(componentAmountConsidered):
+        axs[j+1].plot(components[j])
+        axs[j+1].set_title(str(j+1) + "-th component")
+
     plt.show()
 
-    no_ref_templ_correlations = []
-    for curr_component in components:
-            no_ref_templ_correlations.append(calculate_snr_correlation(new_ecg, curr_component))
-
-    no_ref_auto_correlations = []
-    for curr_component in components:
-            no_ref_auto_correlations.append(calculate_snr_correlation(new_ecg, curr_component))
-
-    no_ref_template_matching_correlations = []
-    for curr_component in components:
-            no_ref_template_matching_correlations.append(calculate_snr_correlation(new_ecg, curr_component))
-
-    no_ref_ssp_correlations = []
-    for curr_component in components:
-            no_ref_ssp_correlations.append(calculate_snr_correlation(new_ecg, curr_component))
-
-
-    '''
-        # plot the extracted ecg related component
-        fig, axs = plt.subplots(componentAmountConsidered + 1, 1)
-        axs[0].plot(new_ecg)
-        axs[0].set_title('clean ecg')
-
-        for j in range(componentAmountConsidered):
-            axs[j+1].plot(components[j])
-            axs[j+1].set_title(str(j+1) + "-th component")
-
-        plt.show()
-
-    '''
+    
 
     # employ NeuroKit Heartbeat Visualization and Quality Assessment
     # TODO über den plot mit markierten R-Peaks nochmal Herzrate drüberlegen für visuelle Kontrolle
@@ -408,8 +387,8 @@ def main():
 
 
     # Visualize R-peaks in ECG signal
-    '''nk_plot = nk.events_plot(nk_rpeaks, nk_cleaned_ecg)
-    '''
+    nk_plot = nk.events_plot(nk_rpeaks, nk_cleaned_ecg)
+    
     # Plotting all the heart beats
     #nk_epochs = nk.ecg_segment(nk_cleaned_ecg, rpeaks=None, sampling_rate=sampling_rate, show=True)
 
