@@ -2,6 +2,7 @@ import operator
 import math 
 import pywt
 import numpy as np
+import scipy.signal as scis
 import time 
 import matplotlib.pyplot as plt
 
@@ -26,6 +27,91 @@ ecg_related_index = 0
 componentAmountConsidered = len(eeg_channels)
 
 
+def calculate_snr_correlation(clean_signal, noisy_signal):
+    #correlation = np.corrcoef(clean_signal, noisy_signal)[0, 1]
+    correlation = np.correlate(clean_signal, noisy_signal)
+    correlation = correlation ** 2
+    return correlation
+
+''' TODO Delete
+def calc_cross_cor_stackof(signal, noisy):
+    "Plot cross-correlation (full) between two signals."
+    # clean signal and noise first
+    mittelwert = (np.max(signal) + np.min(signal)) / 2
+    normalized_signal = signal - mittelwert
+    normalized_signal = normalized_signal / np.max(normalized_signal)
+
+    mittelwert = (np.max(noisy) + np.min(noisy)) / 2
+    normalized_noisy = noisy - mittelwert
+    normalized_noisy = normalized_noisy / np.max(normalized_noisy)
+
+    # determine if negative correlated
+    similarity = normalized_noisy * normalized_signal
+    normalized_noisy = normalized_noisy * np.sign(np.mean(similarity))
+
+    signal = normalized_signal
+    noisy = normalized_noisy
+
+    #########################################
+
+    N = max(len(signal), len(noisy)) 
+    n = min(len(signal), len(noisy)) 
+
+    if N == len(noisy): 
+        lags = np.arange(-N + 1, n) 
+    else: 
+        lags = np.arange(-n + 1, N) 
+
+    #c = scis.correlate(signal / np.std(signal), noisy / np.std(noisy), 'full')
+    c = scis.correlate(signal, noisy, 'full') 
+    correlation_value = np.max(c / n) # (?) -> TODO Check if true
+    print("Calculated correlation (normalized in [0,1]) ", np.max(c / n))
+    plt.plot(lags, c / n) 
+    plt.show() 
+
+    return correlation_value
+    #return np.corrcoef(signal, noisy)[0, 1]
+'''
+
+'''
+def calc_crosscorr(signal, noisy):
+    # clean the signals first 
+    mittelwert = (np.max(signal) + np.min(signal)) / 2
+    normalized_signal = signal - mittelwert
+    normalized_signal = normalized_signal / np.max(normalized_signal)
+
+    mittelwert = (np.max(noisy) + np.min(noisy)) / 2
+    normalized_noisy = noisy - mittelwert
+    normalized_noisy = normalized_noisy / np.max(normalized_noisy)
+
+    # determine if negative correlated
+    similarity = normalized_noisy * normalized_signal
+    normalized_noisy = normalized_noisy * np.sign(np.mean(similarity))
+    
+
+    correlation = scis.correlate(normalized_signal, normalized_noisy, mode = "full")
+    corr = correlation / np.max(correlation)
+
+    lags = scis.correlation_lags(len(normalized_signal), len(normalized_noisy), mode = "full")
+    lag = lags[np.argmax(correlation)]
+
+    print("Calculated Lag ", lag)
+    print("Calculated Max Corr ", np.max(corr))
+
+    return np.max(corr)
+'''
+
+def compute_cross_correlation_CGPT(clean_signal, noisy_signal):
+    # Compute cross-correlation
+    cross_corr = scis.correlate(clean_signal, noisy_signal, mode='full')
+    
+    # Normalize cross-correlation (using L2 Norm)
+    norm_cross_corr = cross_corr / (np.linalg.norm(clean_signal) * np.linalg.norm(noisy_signal))
+    
+    #return norm_cross_corr
+    return np.max(np.abs(norm_cross_corr))
+
+
 def main():
 
     ############################ get data and perform ICA on it (analogous to ICA script)
@@ -46,9 +132,15 @@ def main():
     rawEEG = icascript.createObjectMNE('eeg', prepro.preprocessData(dataRecordings[0].getEEG()))
     rawECG = icascript.createObjectMNE('ecg', prepro.preprocessData(dataRecordings[0].getECG()))
 
-    # Here we'll crop to 'tmax' seconds 
-    rawEEG.crop(tmin = 180.0, tmax=240.0)
-    rawECG.crop(tmin = 180.0, tmax=240.0)
+    # get user template from ECG recording (not simulated)
+    userTemplate = mne.io.Raw.copy(rawECG).crop(tmin=420.0, tmax=480.0)
+
+
+    # Here we'll crop to 'tmax- tmin' seconds (240-180 = 60 seconds)
+    # TODO Rausfinden warum float_NaN to int conversion Fehler, wenn tmin 300 und tmax 360
+    # TODO Rausfinden warum broadcast / shape error wenn 
+    rawEEG.crop(tmin = 900.0, tmax=960.0)
+    rawECG.crop(tmin = 900.0, tmax=960.0)
     # apply bandpass filter(?) on EEG data (before ICA) to prevent slow downward(?) shift (?)
     filt_rawEEG = rawEEG.copy().filter(l_freq=1.0, h_freq=50.0)
 
@@ -57,13 +149,13 @@ def main():
 
     startTime_ICA = time.time()
     # using picard
-    #ica = ICA(n_components=componentAmountConsidered, max_iter=1, random_state=97, method='picard')
+    #ica = ICA(n_components=componentAmountConsidered, max_iter="auto", random_state=97, method='picard')
 
     # using fastICA
     #ica = ICA(n_components=componentAmountConsidered, max_iter=1, random_state=97, method='fastica')
 
     # using infoMax
-    ica = ICA(n_components=componentAmountConsidered, max_iter=1, random_state=97, method='infomax')
+    ica = ICA(n_components=componentAmountConsidered, max_iter="auto", random_state=97, method='infomax')
     
     ica.fit(filt_rawEEG)
     ica
@@ -81,7 +173,7 @@ def main():
     rawECG.add_channels([rawResult])
     rawECG.plot(title = "rawECG (fused)")
 
-    # get all IC components for SNR Evaluation (each)
+    # get all IC components to calculate correlation (including REF ECG)
     resultData, resultTimes = rawECG[:]
     new_ecg = resultData[0][:]
     components = []
@@ -92,43 +184,138 @@ def main():
     # print SNR values for ECG-related component only (compared to reference ECG)
     correlations = []
     for curr_component in components:
-            correlations.append(icascript.calculate_snr_correlation(new_ecg, curr_component))
+            correlations.append(calculate_snr_correlation(new_ecg, curr_component))
     
     global ecg_related_index
     ecg_related_index = correlations.index(max(correlations))
 
     print("##########################")
-    print("SNR results for the", (ecg_related_index+1), "th component")
-    print("SNR:", icascript.calculate_snr(new_ecg, components[ecg_related_index], ecg_related_index), "dB")
-    #print("SNR (RMS):", calculate_snr_RMS(components[0], components[i]), "dB")
-    #print("SNR (peak-to-peak):", calculate_snr_peak_to_peak(components[i]))
-    #print("SNR (wavelet):", calculate_snr_wavelet(components[i]))
-    print("SNR (correlation with REF ECG):", icascript.calculate_snr_correlation(new_ecg, components[ecg_related_index]))
-    #print("SNR (IDUN) for 1 comp:", calculate_snr_Idun(components[i]))
+    print("SNR results for the", (ecg_related_index+1), "th component (with REF ECG)")
+    print("SNR (correlation with REF ECG):", calculate_snr_correlation(new_ecg, components[ecg_related_index]))
+    print("SNR (with REF ECG):", icascript.calculate_snr(new_ecg, components[ecg_related_index], ecg_related_index), "dB")
+
+    epoch = icascript.epoch_for_QRS_and_noise(components[ecg_related_index], new_ecg)
+    snr_ptp = icascript.calculate_snr_PeakToPeak_from_epochs(epoch[0], epoch[1])
+    print("SNR (avg peak-to-peak-amplitude) is ", snr_ptp, "dB")
+    
+    snr_rssq = icascript.calc_snr_RSSQ_from_epochs(epoch[0], epoch[1])
+    print("SNR (avg RSSQ) is ", snr_rssq, "dB")
     print("##########################")
 
+    ################ CALCULATE CROSS CORRELATION WITH REF SIGNAL TO DETERMINE ECG-RELATED IC ##############
+    '''
+    cross_correlations = []
+    for curr_component in components:
+         corr = calc_cross_cor_stackof(new_ecg, curr_component)
+         cross_correlations.append(corr)
+    print("Component with max corr calculated is: ", np.argmax(cross_correlations) + 1, " component")
+    print("with cross correlation of ", np.max(cross_correlations))
+    '''
+
+    
+    cross_corr_CGPT = []
+    it = 0
+    for curr_component in components:
+         corr = compute_cross_correlation_CGPT(new_ecg, curr_component)
+         print("(CGPT) Cross-Correlation of ", it + 1, "-th component is: ", corr)
+         cross_corr_CGPT.append(corr)
+         it += 1
+    
+    print("Component with max corr_CGPT calculated is: ", np.argmax(cross_corr_CGPT) + 1, " component")
+    print("with cross correlation of ", np.max(cross_corr_CGPT))
+    
+
+
     ################################# CALCULATE CORRELATION WITHOUT REF ECG ##################################
-    ecg_template = nk.signal_resample(nk.data(dataset="ecg_1000hz"), desired_length = 1, sampling_rate = 1000, desired_sampling_rate = 250, method = "FFT")
-    nk.signal_plot(ecg_template[0:10000], sampling_rate=1000)
+
+    # Create accurate ecg template signal to cross correlate noisy signal with
+    ecg_template = nk.data(dataset="ecg_1000hz")
+    ecg_template_resamp = nk.signal_resample(ecg_template, sampling_rate = 1000, desired_sampling_rate = sampling_rate)
+    ecg_template = ecg_template_resamp[400:650]
+    nk.signal_plot(ecg_template, sampling_rate = sampling_rate)
     plt.show()
 
-    no_ref_templ_correlations = []
+    template_correlation_CGPT = []
+    it = 0 
+    corr_CGPT_timeBegin = time.time()
     for curr_component in components:
-            no_ref_templ_correlations.append(icascript.calculate_snr_correlation(new_ecg, curr_component))
+         corr = compute_cross_correlation_CGPT(ecg_template, curr_component)
+         print("(Template_CGPT) Cross-Correlation of ", it + 1, "-th component is: ", corr)
+         template_correlation_CGPT.append(corr)
+         it += 1
+    corr_CGPT_time_total = time.time() - corr_CGPT_timeBegin
+    print("Component with max corr_CGPT calculated is: ", np.argmax(template_correlation_CGPT) + 1, " component")
+    print("with cross correlation of ", np.max(template_correlation_CGPT))
+    print("CGPT_Corr took ", corr_CGPT_time_total, " seconds in total")
+
+    ###################################################
+    #####################################################
+
+    # create user ecg_template from copied Raw_ecg object
+    templateData, resultTimes = userTemplate[:]
+    user_ecg_template = templateData[0][:]
+    #user_ecg_template = user_ecg_template[500:750]
+    plt.plot(user_ecg_template)
+    plt.show()
+
+    user_template_correlation_CGPT = []
+    it = 0 
+    user_corr_CGPT_timeBegin = time.time()
+    for curr_component in components:
+         corr = compute_cross_correlation_CGPT(user_ecg_template, curr_component)
+         print("(USER_Template_CGPT) Cross-Correlation of ", it + 1, "-th component is: ", corr)
+         user_template_correlation_CGPT.append(corr)
+         it += 1
+    user_corr_CGPT_time_total = time.time() - user_corr_CGPT_timeBegin
+    print("Component with max corr_CGPT calculated is: ", np.argmax(user_template_correlation_CGPT) + 1, " component")
+    print("with cross correlation of ", np.max(user_template_correlation_CGPT))
+    print("CGPT_Corr took ", user_corr_CGPT_time_total, " seconds in total")
+
+    ########################################################
+    #######################################################
+    ############### AUTOCORRELATION APPROACH #################
 
     no_ref_auto_correlations = []
+    it = 0 
+    auto_corr_timeBegin = time.time()
+    autocorr_threshold = 0.4
     for curr_component in components:
-            no_ref_auto_correlations.append(icascript.calculate_snr_correlation(new_ecg, curr_component))
+        # this is basically scipy correlation of the signal with itself
+        # TODO Find out appropriate time lag (duration of one heart beat??) to correlate against
+        #autocorr, info = nk.signal_autocor(curr_component, lag = 250, show = True)
 
-    no_ref_template_matching_correlations = []
+        autocorr = scis.correlate(curr_component, curr_component, mode = "full")
+        # normalize autocorrelation values 
+        autocorr /= np.max(autocorr)
+
+        corr_peaks = np.where(autocorr > autocorr_threshold)[0]
+        no_ref_auto_correlations.append(corr_peaks.size)
+
+        #print("(NK) Auto)-Correlation of ", it + 1, "-th component is: ", autocorr)
+        #no_ref_auto_correlations.append(autocorr)
+        it += 1
+    auto_corr_time_total = time.time() - auto_corr_timeBegin
+
+    print("Component with max (NK) Auto-Corr PEAKS calculated is: ", np.argmax(no_ref_auto_correlations) + 1, " component")
+    print("with auto correlation PEAKS of ", np.max(no_ref_auto_correlations))
+    print("NK auto corr took ", auto_corr_time_total, " seconds in total")
+    
+
+    ########################################################
+    #######################################################
+
+    it = 0 
+    templ_corr_timeBegin = time.time()
+    no_ref_templ_correlations = []
     for curr_component in components:
-            no_ref_template_matching_correlations.append(icascript.calculate_snr_correlation(new_ecg, curr_component))
-
-    no_ref_ssp_correlations = []
-    for curr_component in components:
-            no_ref_ssp_correlations.append(icascript.calculate_snr_correlation(new_ecg, curr_component))
-
-
+        snr_corr = calculate_snr_correlation(user_ecg_template, curr_component)
+        print("(USER_Template_CGPT) SNR-Correlation of ", it + 1, "-th component is: ", snr_corr)
+        no_ref_templ_correlations.append(snr_corr)
+        it += 1
+    templ_corr_time_total = time.time() - templ_corr_timeBegin
+    print("Component with max (CGPT) User Template SNR-Corr calculated is: ", np.argmax(no_ref_templ_correlations) + 1, " component")
+    print("with snr correlation of ", np.max(no_ref_templ_correlations))
+    print("(CGPT) SNR corr took ", templ_corr_time_total, " seconds in total")
     
     # plot the extracted ecg related components
     fig, axs = plt.subplots(componentAmountConsidered + 1, 1)
@@ -163,18 +350,6 @@ def main():
     #nk_epochs = nk.ecg_segment(nk_cleaned_ecg, rpeaks=None, sampling_rate=sampling_rate, show=True)
 
     ###################
-
-    
-    ''' TODO Delete this
-    epoch = icascript.epoch_for_QRS_and_noise(nk_cleaned_ecg, new_ecg)
-    #epoch = epoch_for_QRS_and_noise(nk_cleaned_ecg)
-
-    snr_ptp = icascript.calculate_snr_PeakToPeak_from_epochs(epoch[0], epoch[1])
-    print("SNR (avg peak-to-peak-amplitude) is ", snr_ptp, "dB")
-
-    snr_rssq = icascript.calc_snr_RSSQ_from_epochs(epoch[0], epoch[1])
-    print("SNR (avg RSSQ) is ", snr_rssq, "dB")
-    '''
     
     
 if __name__ == "__main__":

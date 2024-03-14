@@ -93,6 +93,7 @@ def calculate_snr(clean_signal, noisy_signal, count):
             axs[2].legend()
             plt.show()
     '''
+    # TODO richtige SNR Formel (insb. Vorfaktor 20 oder 10?)
     noise_power = np.mean(np.square(noise))
     snr = 10 * np.log10(clean_power / noise_power)
     return snr
@@ -212,7 +213,9 @@ def calculate_snr_PeakToPeak_from_epochs(qrs_epochs, noise_epochs):
     noise_pTp_amplitude_avg = noise_pTp_amplitude_sum / len(noise_epochs)
 
     # calculate SNR in dB
-    # TODO genaue Formel (insb Vorfaktor) für milliVolts???!
+    # TODO genaue Formel (insb Vorfaktor) für milliVolts???! (siehe unten)
+    # when signal and noise are measured in volts (V) or amperes (A) (measures of amplitude) 
+    # they must first be squared to obtain a quantity proportional to power
     snr = 20 * np.log10(qrs_pTp_amplitude_avg / noise_pTp_amplitude_avg)
     return snr
 
@@ -229,7 +232,9 @@ def calc_snr_RSSQ_from_epochs(qrs_epochs, noise_epochs):
     noise_RSSQ_avg = noise_RSSQ_sum / len(noise_epochs)
 
     # calculate SNR in dB
-    # TODO genaue Formel (insb Vorfaktor) für milliVolts???!
+    # TODO genaue Formel (insb Vorfaktor) für milliVolts???! (siehe unten)
+    # when signal and noise are measured in volts (V) or amperes (A) (measures of amplitude) 
+    # they must first be squared to obtain a quantity proportional to power
     snr = 20 * np.log10(qrs_RSSQ_avg / noise_RSSQ_avg)
     return snr
 
