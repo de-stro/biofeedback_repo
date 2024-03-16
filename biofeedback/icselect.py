@@ -133,7 +133,7 @@ def main():
     rawECG = icascript.createObjectMNE('ecg', prepro.preprocessData(dataRecordings[0].getECG()))
 
     # get user template from ECG recording (not simulated)
-    userTemplate = mne.io.Raw.copy(rawECG).crop(tmin=420.0, tmax=480.0)
+    userTemplate = mne.io.Raw.copy(rawECG).crop(tmin=360.0, tmax=420.0)
 
 
     # Here we'll crop to 'tmax- tmin' seconds (240-180 = 60 seconds)
@@ -229,6 +229,7 @@ def main():
     ################################# CALCULATE CORRELATION WITHOUT REF ECG ##################################
 
     # Create accurate ecg template signal to cross correlate noisy signal with
+    '''
     ecg_template = nk.data(dataset="ecg_1000hz")
     ecg_template_resamp = nk.signal_resample(ecg_template, sampling_rate = 1000, desired_sampling_rate = sampling_rate)
     ecg_template = ecg_template_resamp[400:650]
@@ -247,6 +248,7 @@ def main():
     print("Component with max corr_CGPT calculated is: ", np.argmax(template_correlation_CGPT) + 1, " component")
     print("with cross correlation of ", np.max(template_correlation_CGPT))
     print("CGPT_Corr took ", corr_CGPT_time_total, " seconds in total")
+    '''
 
     ###################################################
     #####################################################
@@ -274,7 +276,7 @@ def main():
     ########################################################
     #######################################################
     ############### AUTOCORRELATION APPROACH #################
-
+    ''' TODO Auto-Corr Ansatz prüfen (ob als invalide Alternative) oder omitten
     no_ref_auto_correlations = []
     it = 0 
     auto_corr_timeBegin = time.time()
@@ -299,7 +301,7 @@ def main():
     print("Component with max (NK) Auto-Corr PEAKS calculated is: ", np.argmax(no_ref_auto_correlations) + 1, " component")
     print("with auto correlation PEAKS of ", np.max(no_ref_auto_correlations))
     print("NK auto corr took ", auto_corr_time_total, " seconds in total")
-    
+    '''
 
     ########################################################
     #######################################################
