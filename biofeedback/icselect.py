@@ -192,7 +192,7 @@ def main():
     print("##########################")
     print("SNR results for the", (ecg_related_index+1), "th component (with REF ECG)")
     print("SNR (correlation with REF ECG):", calculate_snr_correlation(new_ecg, components[ecg_related_index]))
-    print("SNR (with REF ECG):", icascript.calculate_snr(new_ecg, components[ecg_related_index], ecg_related_index), "dB")
+    print("SNR (with REF ECG):", icascript.calculate_snr_wR(new_ecg, components[ecg_related_index], ecg_related_index), "dB")
 
     epoch = icascript.epoch_for_QRS_and_noise(components[ecg_related_index], new_ecg)
     snr_ptp = icascript.calculate_snr_PeakToPeak_from_epochs(epoch[0], epoch[1])

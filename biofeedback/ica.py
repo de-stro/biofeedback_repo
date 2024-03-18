@@ -56,9 +56,22 @@ def createObjectMNE(type: str, data_2D):
         return mne.io.RawArray(data_2D, info)
 
 
+def calculate_corr_sign(ref_signal, noisy_signal):
+    mittelwert = (np.max(ref_signal) + np.min(ref_signal)) / 2
+    normalized_ref = ref_signal - mittelwert
+    normalized_ref = normalized_ref / np.max(normalized_ref)
+
+    mittelwert = (np.max(noisy_signal) + np.min(noisy_signal)) / 2
+    normalized_noisy = noisy_signal - mittelwert
+    normalized_noisy = normalized_noisy / np.max(normalized_noisy) 
+
+    similarity = normalized_noisy * normalized_ref
+
+    return np.sign(np.mean(similarity))
 
 
-def calculate_snr(clean_signal, noisy_signal, count):
+
+def calculate_snr_wR(clean_signal, noisy_signal):
     mittelwert = (np.max(clean_signal) + np.min(clean_signal)) / 2
     normalized_clean = clean_signal - mittelwert
     normalized_clean = normalized_clean / np.max(normalized_clean)
@@ -73,26 +86,8 @@ def calculate_snr(clean_signal, noisy_signal, count):
 
     normalized_noisy = normalized_noisy * np.sign(np.mean(similarity))
 
-    global flip
-    global ecg_related_index
-    if np.sign(np.mean(similarity)) < 0:
-        flip = -1
-    else:
-        flip = 1
-
     noise = normalized_noisy - normalized_clean
-    '''
-        if (count == ecg_related_index):
-            fig, axs = plt.subplots(3, 1)
-            axs[0].plot(noise, label = 'noise')
-            axs[1].plot(normalized_clean, label = 'norm clean')
-            axs[1].plot(normalized_noisy, label = 'norm noisy (' + str(count + 1) + '-th comp')
-            axs[2].plot(similarity, label = 'simil/corr')
-            axs[0].legend()
-            axs[1].legend()
-            axs[2].legend()
-            plt.show()
-    '''
+    
     # TODO richtige SNR Formel (insb. Vorfaktor 20 oder 10?)
     noise_power = np.mean(np.square(noise))
     snr = 10 * np.log10(clean_power / noise_power)
@@ -101,9 +96,10 @@ def calculate_snr(clean_signal, noisy_signal, count):
 ''' Correlation-based Method: Compute the correlation coefficient between the noisy signal and the clean reference signal. 
     Return Pearson product-moment correlation coefficients
     The closer the correlation coefficient is to 1, the higher the SNR. 
+    TODO Code Explaination in detail needed! How is Corr caluculated??
 '''
-def calculate_snr_correlation(clean_signal, noisy_signal):
-    correlation = np.corrcoef(clean_signal, noisy_signal)[0, 1]
+def calculate_snr_correlation_wR_CGPT(ref_signal, noisy_signal):
+    correlation = np.corrcoef(ref_signal, noisy_signal)[0, 1]
     snr = correlation ** 2
     return snr
 
@@ -238,7 +234,113 @@ def calc_snr_RSSQ_from_epochs(qrs_epochs, noise_epochs):
     snr = 20 * np.log10(qrs_RSSQ_avg / noise_RSSQ_avg)
     return snr
 
+
+def choseBestICA(eeg_data:mne.io.Raw, ecg_ref:mne.io.Raw, amountICs, maxIter):
+    """Given an eeg_signal, this methods computes ICA using the best performing algorithm based on (pTp) SNR and 
+    returns dictionary with the results after fitting (key and dict of ICA dicts)
+    """
+    
+    ''' TODO assume the data is already preprocessed and as (cropped) MNE Object
+    # perform preprocessing on raw data
+    prep_eeg = prepro.preprocessData(eeg_data)
+    prep_ecg = prepro.preprocessData(ecg_ref)
+
+    # create MNE Raw Objects to perform ICA on
+    mne_eeg = createObjectMNE("eeg", prep_eeg)
+    mne_ecg = createObjectMNE("ecg", prep_ecg)
+    '''
+    # TODO was this already done (in preprocessing)??
+    # apply bandpass filter(?) on EEG data (before ICA) to prevent slow downward(?) shift (?)
+    filtBP_eeg = eeg_data.copy().filter(l_freq=1.0, h_freq=50.0)
+
+    # compute and compare the different MNE ICA algorithm implementations (comp time and SNR of ECG-IC)
+    results_dict = {}
+
+    # TODO make dict with resulting facts
+
+    # configure the ica objects for fitting
+    picard_dict = {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard')}
+    infomax_dict = {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='infomax')}
+    fastica_dict = {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica')}
+    ica_dicts = {"picard": picard_dict, "infomax": infomax_dict, "fastica": fastica_dict}
+
+    # fit the ICA objects and time the fitting
+    for methodName, ica_dict in ica_dicts.items():
+        ica_dict["rawCopy"] = eeg_data.copy()
+        ica_dict["filterCopy"] = filtBP_eeg.copy()
+
+        startTime = time.time()
+        ica_dict["ica"].fit(ica_dict["filterCopy"])
+        fitTime = time.time() - startTime
+
+        ica_dict["fitTime"] = fitTime
+        ica_dict["sources"] = ica_dict["ica"].get_sources(ica_dict["rawCopy"]) # TODO can we also *not* use Raw Obj Instance here?
+
+        # identify ECG-related IC (using ecg_ref) and compute the resulting SNR
+        timeseries, times = (ica_dict["sources"]).get_data(return_times=True)
+        timeseries.flatten()
+        snr_correlations_CGPT = []
+        ecg_ref_series = (ecg_ref.get_data()).flatten()
+        
+        for component in timeseries:
+            snr_correlations_CGPT.append(calculate_snr_correlation_wR_CGPT(ecg_ref_series, component))
+
+        ecg_related_index = snr_correlations_CGPT.index(max(snr_correlations_CGPT))
+
+        print("ChoseBest_TEST: ECG_RELATED INDEX")
+        print("Method used: ",  methodName)
+        print("ECG-related Component calulated: ", ecg_related_index, "-th component (starting from 0!)")
+        print("with SNR_corr value of: ", snr_correlations_CGPT[ecg_related_index])
+
+        # TODO Plot the sources / results to visually control calculated ECG_component
+
+        # calulate peak-to-peak SNR of ECG-related component
+        ecg_related_timeseries = timeseries[ecg_related_index]
+        # flip ecg-related component if negatively correlated with ref_ecg
+        ecg_related_timeseries *= calculate_corr_sign(ecg_ref_series, ecg_related_timeseries)
+
+        ica_dict["ECG_related_Timeseries"] = ecg_related_timeseries
+
+        # segment the signal into indivdual heartbeats to calculate pTp SNR / RSSQ SNR
+        epoch = epoch_for_QRS_and_noise(ecg_related_timeseries, ecg_ref_series)
+        #epoch = epoch_for_QRS_and_noise(nk_cleaned_ecg)
+
+        snr_ptp = calculate_snr_PeakToPeak_from_epochs(epoch[0], epoch[1])
+        print("SNR (avg peak-to-peak-amplitude) is ", snr_ptp, "dB")
+        ica_dict["pTp_SNR_dB"] = snr_ptp
+
+        snr_rssq = calc_snr_RSSQ_from_epochs(epoch[0], epoch[1])
+        print("SNR (avg RSSQ) is ", snr_rssq, "dB")
+        ica_dict["rssq_SNR_dB"] = snr_rssq
+    
+    # chose best performing ICA algorithm and return results (based on SNR alone)
+    # TODO calculate metric (optimal time/SNR ratio) to rank algorithm performance
+    maxSNR_pTp = (ica_dicts["picard"])["pTp_SNR_dB"]
+    bestMethod_pTp = "picard"
+    maxSNR_rssq = (ica_dicts["picard"])["rssq_SNR_dB"]
+    bestMethod_rssq = "picard"
+
+    for methodName, ica_dict in ica_dicts.items():
+        if  ica_dict["pTp_SNR_dB"] > maxSNR_pTp:
+            maxSNR_pTp = ica_dict["pTp_SNR_dB"]
+            bestMethod_pTp = methodName
+        if ica_dict["rssq_SNR_dB"] > maxSNR_rssq:
+            maxSNR_rssq = ica_dict["rssq_SNR_dB"]
+            bestMethod_rssq = methodName
+    
+    print("########## TEST_choseBestICA: RESULTS ###################")
+    print("Best method regarding pTp_SNR: ", bestMethod_pTp, "with ", maxSNR_pTp, " dB")
+    print("Best method regarding rssq_SNR: ", bestMethod_rssq, "with ", maxSNR_rssq, " dB")
+
+    return (bestMethod_pTp, ica_dicts)
+
+
+
+
+
 def main():
+
+    global componentAmountConsidered
     
     ########## load and select sample / window from test recordings (eeg and ecg channels seperately)
 
@@ -270,6 +372,8 @@ def main():
     #rawEEG.crop(tmin = 630.0, tmax=690.0)
     #rawECG.crop(tmin = 630.0, tmax=690.0)
 
+    choseBestICA(rawEEG, rawECG, componentAmountConsidered, "auto")
+
     startTime_filter = time.time()
     # TODO Check if this is already done by BrainFlow Filtering
     # TODO Note down that this is necessary (bandpass filter EEG before ICA to prevent slow downward shift) (?)
@@ -282,8 +386,6 @@ def main():
 
     # apply ICA on the filtered raw EEG data
 
-    global componentAmountConsidered
-
     startTime_ICA = time.time()
     # using picard
     #ica = ICA(n_components=componentAmountConsidered, max_iter=1, random_state=97, method='picard')
@@ -292,7 +394,7 @@ def main():
     #ica = ICA(n_components=componentAmountConsidered, max_iter=1, random_state=97, method='fastica')
 
     # using infoMax
-    ica = ICA(n_components=componentAmountConsidered, max_iter=1, random_state=97, method='infomax')
+    ica = ICA(n_components=componentAmountConsidered, max_iter="auto", random_state=97, method='infomax')
     
     ica.fit(filt_rawEEG)
     ica
@@ -341,18 +443,18 @@ def main():
     # print SNR values for ECG-related component only (compared to reference ECG)
     correlations = []
     for curr_component in components:
-            correlations.append(calculate_snr_correlation(new_ecg, curr_component))
+            correlations.append(calculate_snr_correlation_wR_CGPT(new_ecg, curr_component))
     
     global ecg_related_index
     ecg_related_index = correlations.index(max(correlations))
 
     print("##########################")
     print("SNR results for the", (ecg_related_index+1), "th component")
-    print("SNR:", calculate_snr(new_ecg, components[ecg_related_index], ecg_related_index), "dB")
+    print("SNR:", calculate_snr_wR(new_ecg, components[ecg_related_index]), "dB")
     #print("SNR (RMS):", calculate_snr_RMS(components[0], components[i]), "dB")
     #print("SNR (peak-to-peak):", calculate_snr_peak_to_peak(components[i]))
     #print("SNR (wavelet):", calculate_snr_wavelet(components[i]))
-    print("SNR (correlation with REF ECG):", calculate_snr_correlation(new_ecg, components[ecg_related_index]))
+    print("SNR (correlation with REF ECG):", calculate_snr_correlation_wR_CGPT(new_ecg, components[ecg_related_index]))
     #print("SNR (IDUN) for 1 comp:", calculate_snr_Idun(components[i]))
     print("##########################")
 
@@ -375,7 +477,7 @@ def main():
     # TODO über den plot mit markierten R-Peaks nochmal Herzrate drüberlegen für visuelle Kontrolle
     # TODO mit individual heartbeats plot spielen um guten Wert für epoch segmentierung zu finden (bzgl. SNR Formel Güler/PluxBio)
 
-    ecg_related_comp = components[ecg_related_index] * flip
+    ecg_related_comp = components[ecg_related_index] * calculate_corr_sign(new_ecg, components[ecg_related_index])
     nk_signals, nk_info = nk.ecg_process(ecg_related_comp, sampling_rate=sampling_rate)
 
     # Extract ECG-related IC and R-peaks location
