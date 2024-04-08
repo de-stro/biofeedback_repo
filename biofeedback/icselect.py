@@ -2,7 +2,8 @@ import operator
 import math 
 import pywt
 import numpy as np
-import scipy.signal as scis
+import scipy.signal as scisig
+import sklearn.preprocessing as sklprep
 import time 
 import matplotlib.pyplot as plt
 
@@ -26,52 +27,11 @@ flip = 1
 ecg_related_index = 0
 componentAmountConsidered = len(eeg_channels)
 
-
 def calculate_snr_correlation(clean_signal, noisy_signal):
-    #correlation = np.corrcoef(clean_signal, noisy_signal)[0, 1]
+    correlation = np.corrcoef(clean_signal, noisy_signal)[0, 1]
     correlation = np.correlate(clean_signal, noisy_signal)
     correlation = correlation ** 2
     return correlation
-
-''' TODO Delete
-def calc_cross_cor_stackof(signal, noisy):
-    "Plot cross-correlation (full) between two signals."
-    # clean signal and noise first
-    mittelwert = (np.max(signal) + np.min(signal)) / 2
-    normalized_signal = signal - mittelwert
-    normalized_signal = normalized_signal / np.max(normalized_signal)
-
-    mittelwert = (np.max(noisy) + np.min(noisy)) / 2
-    normalized_noisy = noisy - mittelwert
-    normalized_noisy = normalized_noisy / np.max(normalized_noisy)
-
-    # determine if negative correlated
-    similarity = normalized_noisy * normalized_signal
-    normalized_noisy = normalized_noisy * np.sign(np.mean(similarity))
-
-    signal = normalized_signal
-    noisy = normalized_noisy
-
-    #########################################
-
-    N = max(len(signal), len(noisy)) 
-    n = min(len(signal), len(noisy)) 
-
-    if N == len(noisy): 
-        lags = np.arange(-N + 1, n) 
-    else: 
-        lags = np.arange(-n + 1, N) 
-
-    #c = scis.correlate(signal / np.std(signal), noisy / np.std(noisy), 'full')
-    c = scis.correlate(signal, noisy, 'full') 
-    correlation_value = np.max(c / n) # (?) -> TODO Check if true
-    print("Calculated correlation (normalized in [0,1]) ", np.max(c / n))
-    plt.plot(lags, c / n) 
-    plt.show() 
-
-    return correlation_value
-    #return np.corrcoef(signal, noisy)[0, 1]
-'''
 
 '''
 def calc_crosscorr(signal, noisy):
@@ -101,15 +61,46 @@ def calc_crosscorr(signal, noisy):
     return np.max(corr)
 '''
 
-def compute_cross_correlation_CGPT(clean_signal, noisy_signal):
+def compute_cross_correlation(clean_signal, noisy_signal):
     # Compute cross-correlation
-    cross_corr = scis.correlate(clean_signal, noisy_signal, mode='full')
-    
+    cross_corr = scisig.correlate(clean_signal, noisy_signal, mode='full')
+    double_cross = scisig.correlate(clean_signal, cross_corr, mode='full')
+    triple_cross = scisig.correlate(clean_signal, double_cross, mode='full')
+    fourth_cross = scisig.correlate(clean_signal, triple_cross, mode='full')
+
     # Normalize cross-correlation (using L2 Norm)
-    norm_cross_corr = cross_corr / (np.linalg.norm(clean_signal) * np.linalg.norm(noisy_signal))
+    # norm_cross_corr = cross_corr / (np.linalg.norm(clean_signal) * np.linalg.norm(noisy_signal))
+
+    norm_cross_corr = sklprep.minmax_scale(cross_corr, feature_range= (-1, 1))
+    akf_noisy = scisig.correlate(noisy_signal, noisy_signal, mode='same')
+    fft_series = np.fft.fft(akf_noisy)
+    fft_series = np.fft.fftshift(fft_series)
+    fft_series = np.square(np.abs(fft_series))
+
+    # employ minimalistic peak detection
+
+
+    # normalize cross-correlation 
+    fig, axs = plt.subplots(5, 1)
+    axs[0].plot(clean_signal, label = 'Clean Signal')
+    axs[1].plot(noisy_signal, label = 'Noisy Signal')
+    axs[2].plot(cross_corr, label = 'Cross-Correlation of Noisy')
+    axs[3].plot(scisig.correlate(cross_corr, cross_corr, mode='same'), label = 'AKF of Cross-Corr')
+    axs[4].plot(fourth_cross, label = 'Fourth CrossCor of Noisy')
+
+    #axs[3].plot(np.square(np.abs(np.fft.fftshift(np.fft.fft(cross_corr)))), label = "FFT Cross-Corr")
+    #axs[3].plot(akf_noisy, label = 'AKF of Noisy')
+    #axs[3].plot(fft_series, label = 'FFT of akf noisy_signal')
+    axs[0].legend()
+    axs[1].legend()
+    axs[2].legend()
+    axs[3].legend()
+    axs[4].legend()
+    #plt.show()
     
     #return norm_cross_corr
     return np.max(np.abs(norm_cross_corr))
+    #return np.max(norm_cross_corr)
 
 
 def main():
@@ -147,119 +138,71 @@ def main():
     # apply ICA on the filtered raw EEG data
     global componentAmountConsidered
 
-    startTime_ICA = time.time()
-    # using picard
-    #ica = ICA(n_components=componentAmountConsidered, max_iter="auto", random_state=97, method='picard')
+    # perform ICA comparing the different algorithmic performance on the data (regarding pTp SNR of ECG-related IC)
+    method_key, ica_dicts = icascript.choseBestICA(rawEEG, rawECG, amountICs = componentAmountConsidered, maxIter = "auto")
+    bestICA = ica_dicts[method_key]
 
-    # using fastICA
-    #ica = ICA(n_components=componentAmountConsidered, max_iter=1, random_state=97, method='fastica')
-
-    # using infoMax
-    ica = ICA(n_components=componentAmountConsidered, max_iter="auto", random_state=97, method='infomax')
+    # TEST plot results (fusedECG) to visually check results (time series of ICs) of best ICA chosen
     
-    ica.fit(filt_rawEEG)
-    ica
-
-    icaTime = time.time() - startTime_ICA
-
-    print("ICA took (in sec): ", icaTime)
-    print("ICA took in total:", ica.n_iter_, "iterations")
-
-    # plot_sources will show the time series of the ICs. Note that in our call to plot_sources 
-    # we can use the original, unfiltered Raw object
-    rawResult = ica.get_sources(rawEEG)
-    print("len (timepoints) of rawResult: ", len(rawResult))
-    #rawResult.plot()
+    rawResult = bestICA["sources"]
     rawECG.add_channels([rawResult])
     rawECG.plot(title = "rawECG (fused)")
 
-    # get all IC components to calculate correlation (including REF ECG)
-    resultData, resultTimes = rawECG[:]
-    new_ecg = resultData[0][:]
+    # extract components to perform cross-correlation on
     components = []
-    for i in range(1, componentAmountConsidered + 1):
-            components.append(resultData[i][:])
- 
+    timeseries = rawResult.get_data()
+    for component in timeseries:
+        components.append(component.flatten())
 
-    # print SNR values for ECG-related component only (compared to reference ECG)
-    correlations = []
-    for curr_component in components:
-            correlations.append(calculate_snr_correlation(new_ecg, curr_component))
-    
-    global ecg_related_index
-    ecg_related_index = correlations.index(max(correlations))
+    ecg_related_index = bestICA["ECG_related_index_from_0"]
+    ecg_ref = (rawECG.get_data()).flatten()
 
-    print("##########################")
-    print("SNR results for the", (ecg_related_index+1), "th component (with REF ECG)")
-    print("SNR (correlation with REF ECG):", calculate_snr_correlation(new_ecg, components[ecg_related_index]))
-    print("SNR (with REF ECG):", icascript.calculate_snr_wR(new_ecg, components[ecg_related_index], ecg_related_index), "dB")
+    ############## Create Templates for Cross-Correlation ###############
 
-    epoch = icascript.epoch_for_QRS_and_noise(components[ecg_related_index], new_ecg)
-    snr_ptp = icascript.calculate_snr_PeakToPeak_from_epochs(epoch[0], epoch[1])
-    print("SNR (avg peak-to-peak-amplitude) is ", snr_ptp, "dB")
-    
-    snr_rssq = icascript.calc_snr_RSSQ_from_epochs(epoch[0], epoch[1])
-    print("SNR (avg RSSQ) is ", snr_rssq, "dB")
-    print("##########################")
+    # simulate ideal ECG signal for (ideal) template
+    ideal_template = nk.data(dataset="ecg_1000hz")
+    #plt.figure()
+    #plt.plot(np.square(np.abs(np.fft.fftshift(np.fft.fft(ideal_template)))), label = "FFT Template")
+    ideal_template_resamp = nk.signal_resample(ideal_template, sampling_rate = 1000, desired_sampling_rate = sampling_rate)
+    # TODO extract exactly one beat / two beats ... ACURATELY using neurokit methods (instead of magic numbers)
+    ideal_template_1B = ideal_template_resamp[400:700]
+    ideal_template_2B = ideal_template_resamp[400:950]
+    ideal_template_3B = ideal_template_resamp[400:1150]
+    ideal_template_4B = ideal_template_resamp[400:1450]
+    #nk.signal_plot(ideal_template_1B, sampling_rate = sampling_rate)
+    #plt.show()
 
-    ################ CALCULATE CROSS CORRELATION WITH REF SIGNAL TO DETERMINE ECG-RELATED IC ##############
+    # TODO use ecg_ref to create individual user template
+    # -> sinnvoll, wenn letzten endes eh ein anderer Herzschlag beim template matching verwendet wird?
     '''
-    cross_correlations = []
-    for curr_component in components:
-         corr = calc_cross_cor_stackof(new_ecg, curr_component)
-         cross_correlations.append(corr)
-    print("Component with max corr calculated is: ", np.argmax(cross_correlations) + 1, " component")
-    print("with cross correlation of ", np.max(cross_correlations))
-    '''
-
-    
-    cross_corr_CGPT = []
-    it = 0
-    for curr_component in components:
-         corr = compute_cross_correlation_CGPT(new_ecg, curr_component)
-         print("(CGPT) Cross-Correlation of ", it + 1, "-th component is: ", corr)
-         cross_corr_CGPT.append(corr)
-         it += 1
-    
-    print("Component with max corr_CGPT calculated is: ", np.argmax(cross_corr_CGPT) + 1, " component")
-    print("with cross correlation of ", np.max(cross_corr_CGPT))
-    
-
-
-    ################################# CALCULATE CORRELATION WITHOUT REF ECG ##################################
-
-    # Create accurate ecg template signal to cross correlate noisy signal with
-    '''
-    ecg_template = nk.data(dataset="ecg_1000hz")
-    ecg_template_resamp = nk.signal_resample(ecg_template, sampling_rate = 1000, desired_sampling_rate = sampling_rate)
-    ecg_template = ecg_template_resamp[400:650]
-    nk.signal_plot(ecg_template, sampling_rate = sampling_rate)
-    plt.show()
-
-    template_correlation_CGPT = []
-    it = 0 
-    corr_CGPT_timeBegin = time.time()
-    for curr_component in components:
-         corr = compute_cross_correlation_CGPT(ecg_template, curr_component)
-         print("(Template_CGPT) Cross-Correlation of ", it + 1, "-th component is: ", corr)
-         template_correlation_CGPT.append(corr)
-         it += 1
-    corr_CGPT_time_total = time.time() - corr_CGPT_timeBegin
-    print("Component with max corr_CGPT calculated is: ", np.argmax(template_correlation_CGPT) + 1, " component")
-    print("with cross correlation of ", np.max(template_correlation_CGPT))
-    print("CGPT_Corr took ", corr_CGPT_time_total, " seconds in total")
-    '''
-
-    ###################################################
-    #####################################################
-
     # create user ecg_template from copied Raw_ecg object
     templateData, resultTimes = userTemplate[:]
     user_ecg_template = templateData[0][:]
     #user_ecg_template = user_ecg_template[500:750]
     plt.plot(user_ecg_template)
     plt.show()
+    '''
+    #######################################################################
 
+    ############## Compute Cross-Correlation with Ideal Template (simulated) #############################
+
+    print("####### RESULTS: Ideal_TEMPL_CROSSCORR_CGPT ###############")
+    ideal_temp_crosscorr_CGPT = []
+    it = 0 
+    ideal_temp_crosscorr_CGPT_timeBegin = time.time()
+    for curr_component in components:
+         crosscorr = compute_cross_correlation(ideal_template_1B, curr_component)
+         print("(Ideal_Temp_CGPT) Cross-Correlation of ", it, "-th component (from 0!) is: ", crosscorr)
+         ideal_temp_crosscorr_CGPT.append(crosscorr)
+         it += 1
+    ideal_temp_crosscorr_CGPT_timeTotal = time.time() - ideal_temp_crosscorr_CGPT_timeBegin
+    print("Component with max crosscorr is: ", np.argmax(ideal_temp_crosscorr_CGPT), " component (from 0!), with crosscorr of ", np.max(ideal_temp_crosscorr_CGPT))
+    print("Ideal_TEMPL_CROSSCORR_CGPT took ", ideal_temp_crosscorr_CGPT_timeTotal, " seconds in total")
+
+    plt.show()
+    
+    ############## Compute Cross-Correlation with User Template (from ecg_ref) #############################
+    '''
     user_template_correlation_CGPT = []
     it = 0 
     user_corr_CGPT_timeBegin = time.time()
@@ -272,9 +215,10 @@ def main():
     print("Component with max corr_CGPT calculated is: ", np.argmax(user_template_correlation_CGPT) + 1, " component")
     print("with cross correlation of ", np.max(user_template_correlation_CGPT))
     print("CGPT_Corr took ", user_corr_CGPT_time_total, " seconds in total")
+    '''
 
     ########################################################
-    #######################################################
+    
     ############### AUTOCORRELATION APPROACH #################
     ''' TODO Auto-Corr Ansatz prüfen (ob als invalide Alternative) oder omitten
     no_ref_auto_correlations = []
@@ -305,7 +249,7 @@ def main():
 
     ########################################################
     #######################################################
-
+    '''
     it = 0 
     templ_corr_timeBegin = time.time()
     no_ref_templ_correlations = []
@@ -318,41 +262,8 @@ def main():
     print("Component with max (CGPT) User Template SNR-Corr calculated is: ", np.argmax(no_ref_templ_correlations) + 1, " component")
     print("with snr correlation of ", np.max(no_ref_templ_correlations))
     print("(CGPT) SNR corr took ", templ_corr_time_total, " seconds in total")
-    
-    # plot the extracted ecg related components
-    fig, axs = plt.subplots(componentAmountConsidered + 1, 1)
-    axs[0].plot(new_ecg)
-    axs[0].set_title('clean ecg')
+    '''
 
-    for j in range(componentAmountConsidered):
-        axs[j+1].plot(components[j])
-        axs[j+1].set_title(str(j+1) + "-th component")
-
-    plt.show()
-
-    
-
-    # employ NeuroKit Heartbeat Visualization and Quality Assessment
-    # TODO über den plot mit markierten R-Peaks nochmal Herzrate drüberlegen für visuelle Kontrolle
-    # TODO mit individual heartbeats plot spielen um guten Wert für epoch segmentierung zu finden (bzgl. SNR Formel Güler/PluxBio)
-
-    ecg_related_comp = components[ecg_related_index] * flip
-    nk_signals, nk_info = nk.ecg_process(ecg_related_comp, sampling_rate=sampling_rate)
-
-    # Extract ECG-related IC and R-peaks location
-    nk_rpeaks = nk_info["ECG_R_Peaks"]
-    nk_cleaned_ecg = ecg_related_comp #nk_signals["ECG_Clean"]
-
-    #nk.signal_plot([nk_cleaned_ecg, quality], sampling_rate = sampling_rate, subplots = True, standardize=False)
-
-    # Visualize R-peaks in ECG signal
-    nk_plot = nk.events_plot(nk_rpeaks, nk_cleaned_ecg)
-    
-    # Plotting all the heart beats
-    #nk_epochs = nk.ecg_segment(nk_cleaned_ecg, rpeaks=None, sampling_rate=sampling_rate, show=True)
-
-    ###################
-    
     
 if __name__ == "__main__":
     main()

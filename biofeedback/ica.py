@@ -113,17 +113,17 @@ def epoch_for_QRS_and_noise(noisy_signal, reference_signal = None):
     if reference_signal is not None:
         # detect R-peaks in reference signal
         ref_peaks_signal, ref_peaks_info = nk.ecg_peaks(reference_signal, sampling_rate = sampling_rate, 
-                                                        method = 'neurokit', correct_artifacts = False, show = True)
+                                                        method = 'neurokit', correct_artifacts = False, show = False)
         # Delineate cardiac cycle of reference signal
         ref_signals, waves = nk.ecg_delineate(reference_signal, ref_peaks_info["ECG_R_Peaks"], sampling_rate = sampling_rate,
-                                                  method='dwt', show=True, show_type = "bounds_R")
+                                                  method='dwt', show=False, show_type = "bounds_R")
     else:
         # detect R-peaks in noisy signal
         noisy_peaks_signal, noisy_peaks_info = nk.ecg_peaks(noisy_signal, sampling_rate = sampling_rate, 
-                                                        method ='neurokit', correct_artifacts = False, show = True)
+                                                        method ='neurokit', correct_artifacts = False, show = False)
         # Delineate cardiac cycle of noisy signal
         noisy_signals, waves = nk.ecg_delineate(noisy_signal, noisy_peaks_info, sampling_rate = sampling_rate,
-                                                  method = 'dwt', show = True, show_type = "bounds_R")
+                                                  method = 'dwt', show = False, show_type = "bounds_R")
         
     onsets_R_list = waves["ECG_R_Onsets"]
     offsets_R_list = waves["ECG_R_Offsets"]
@@ -135,8 +135,8 @@ def epoch_for_QRS_and_noise(noisy_signal, reference_signal = None):
     if onsets_R_list[-1] > offsets_R_list[-1]:
         onsets_R_list = onsets_R_list[:-1]
     # now size offsets_R_list must be equal or 1 greater than size onsets_R_list!
-    print("TEST:: Size of onset_R_list ", len(onsets_R_list), " and of offset_R_list: ", len(offsets_R_list))
-    print("TEST:: OFFSET_R_LIST MUST BE EQUAL OR 1 GREATER TAHN THE SIZE OF ONSET_R_LIST !!")
+    #print("TEST:: Size of onset_R_list ", len(onsets_R_list), " and of offset_R_list: ", len(offsets_R_list))
+    #print("TEST:: OFFSET_R_LIST MUST BE EQUAL OR 1 GREATER THAN THE SIZE OF ONSET_R_LIST !!")
 
     # calculate duration between R_offset and R_onset in seconds (omit last R_Offset for noise epochs)
     noise_epochs_duration = np.array(onsets_R_list) - np.array(offsets_R_list[:-1])
@@ -145,8 +145,8 @@ def epoch_for_QRS_and_noise(noisy_signal, reference_signal = None):
     # calculate duration between R_onset and R_offset in seconds (omit first R_Offset for QRS epochs)
     qrs_epochs_duration = np.array(offsets_R_list[1:]) - np.array(onsets_R_list)
     qrs_epochs_duration = qrs_epochs_duration / sampling_rate
-    print("TEST:: Length of epochs_duration arrays must be the same!!!")
-    print("TEST::Length of qrs_epochs_duration: ", qrs_epochs_duration.size, " and of noise_epochs_duration: ", noise_epochs_duration.size)
+    #print("TEST:: Length of epochs_duration arrays must be the same!!!")
+    #print("TEST::Length of qrs_epochs_duration: ", qrs_epochs_duration.size, " and of noise_epochs_duration: ", noise_epochs_duration.size)
     ''' TEST
     print("mean duration for QRS complex (in sec): ", np.mean(epochs_duration))
     print("duration of 10th QRS complex (in sec): ", ((ref_waves["ECG_R_Offsets"])[9] - (ref_waves["ECG_R_Onsets"])[9]) / sampling_rate)
@@ -254,10 +254,7 @@ def choseBestICA(eeg_data:mne.io.Raw, ecg_ref:mne.io.Raw, amountICs, maxIter):
     filtBP_eeg = eeg_data.copy().filter(l_freq=1.0, h_freq=50.0)
 
     # compute and compare the different MNE ICA algorithm implementations (comp time and SNR of ECG-IC)
-    results_dict = {}
-
-    # TODO make dict with resulting facts
-
+    
     # configure the ica objects for fitting
     picard_dict = {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard')}
     infomax_dict = {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='infomax')}
@@ -286,6 +283,7 @@ def choseBestICA(eeg_data:mne.io.Raw, ecg_ref:mne.io.Raw, amountICs, maxIter):
             snr_correlations_CGPT.append(calculate_snr_correlation_wR_CGPT(ecg_ref_series, component))
 
         ecg_related_index = snr_correlations_CGPT.index(max(snr_correlations_CGPT))
+        ica_dict["ECG_related_index_from_0"] = ecg_related_index
 
         print("ChoseBest_TEST: ECG_RELATED INDEX")
         print("Method used: ",  methodName)
@@ -330,7 +328,12 @@ def choseBestICA(eeg_data:mne.io.Raw, ecg_ref:mne.io.Raw, amountICs, maxIter):
     
     print("########## TEST_choseBestICA: RESULTS ###################")
     print("Best method regarding pTp_SNR: ", bestMethod_pTp, "with ", maxSNR_pTp, " dB")
+    print("with ECG_related component being the ", (ica_dicts[bestMethod_pTp])["ECG_related_index_from_0"], "-th component (from 0!)")
+    print("Took in sec: ", (ica_dicts[bestMethod_pTp])["fitTime"], "with amount iterations: ", (ica_dicts[bestMethod_pTp])["ica"].n_iter_)
+    print("###")
     print("Best method regarding rssq_SNR: ", bestMethod_rssq, "with ", maxSNR_rssq, " dB")
+    print("with ECG_related component being the ", (ica_dicts[bestMethod_rssq])["ECG_related_index_from_0"], "-th component (from 0!)")
+    print("Took in sec: ", (ica_dicts[bestMethod_rssq])["fitTime"], "with amount iterations: ", (ica_dicts[bestMethod_rssq])["ica"].n_iter_)
 
     return (bestMethod_pTp, ica_dicts)
 
