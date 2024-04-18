@@ -17,6 +17,7 @@ import data.offlinedata as offD
 import data.preprocessing as prepro
 
 import ica as icascript
+import utility as util
 
 board_id = BoardIds.CYTON_BOARD
 sampling_rate = BoardShim.get_sampling_rate(board_id)
@@ -27,10 +28,6 @@ flip = 1
 ecg_related_index = 0
 componentAmountConsidered = len(eeg_channels)
 
-# TODO Move to helper package
-# function to perform ceiling division (a / b rounded up)
-def ceildiv(a, b):
-    return -(a // -b)
 
 def main():
 
@@ -237,7 +234,7 @@ def main():
                 segment_end = signal_beats.size - 1     # segment end is last index
             else:
                 # segment end is halfway to next beat
-                segment_end = peak_location + ceildiv(true_peak_locations[iter_idx + 1] - peak_location, 2)
+                segment_end = peak_location + util.ceildiv(true_peak_locations[iter_idx + 1] - peak_location, 2)
             last_end_idx = segment_end
 
             # check if missed beat (naively) and iff, add to list of missed beat segments
