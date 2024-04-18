@@ -27,6 +27,10 @@ flip = 1
 ecg_related_index = 0
 componentAmountConsidered = len(eeg_channels)
 
+# TODO Move to helper package
+# function to perform ceiling division (a / b rounded up)
+def ceildiv(a, b):
+    return -(a // -b)
 
 def main():
 
@@ -187,9 +191,9 @@ def main():
 
     for algo_name, algo_dict in peakFind_dicts.items():
 
-        gnd_truth_beats = (algo_dict["gnd_truth_results"])["ECG_R_Peaks"]
+        gnd_truth_beats = np.array((algo_dict["gnd_truth_results"])["ECG_R_Peaks"])
         gnd_truth_beat_amount = np.count_nonzero(gnd_truth_beats)
-        signal_beats = (algo_dict["sig_results"])["ECG_R_Peaks"]
+        signal_beats = np.array((algo_dict["sig_results"])["ECG_R_Peaks"])
         signal_beat_amount = np.count_nonzero(signal_beats)
 
         # calculate matches (all common ones in ground_truth and signal beats)
@@ -197,13 +201,18 @@ def main():
         matches_amount = np.count_nonzero(matches)
         algo_dict["matches_amount"] = matches_amount
 
-        # calculate misses (TODO ASSERT? assume gnd_truth_beat_amount >= matches)
+        # calculate naive (!) misses (TODO ASSERT? assume gnd_truth_beat_amount >= matches)
         # TODO calculate boolean array with misses (?)
-        misses = ...
-        misses_amount = gnd_truth_beat_amount - matches_amount
+        naive_misses = np.logical_and(np.logical_xor(gnd_truth_beats, signal_beats), gnd_truth_beats)
+        misses_amount = np.count_nonzero(naive_misses)
+
+        
+        # TODO ASSERT misses_amount == gnd_truth_beat_amount - matches_amount
+        if misses_amount != (gnd_truth_beat_amount - matches_amount):
+            print("ERROR misses_amount != (gnd_truth_beat_amount - matches_amount)")
         algo_dict["misses_amount"] = misses_amount
 
-        # calculate false positives TODO EXPLAIN SUM[(REF XOR SIG) AND not(REF)]
+        # calculate false positives OR displacements TODO EXPLAIN SUM[(REF XOR SIG) AND not(REF)]
         false_positives = np.logical_xor(gnd_truth_beats, signal_beats)
         false_positives = np.logical_and(false_positives, np.logical_not(gnd_truth_beats))
         false_pos_amount = np.count_nonzero(false_positives)
@@ -214,10 +223,73 @@ def main():
         
         # TODO Discern between displacement and combination of miss & false positive
 
+        # segment signal beats array with peak locations into (presumably) missed beats
+        # each segment has width of half the distance to next beat (left/right)
+        true_peak_locations = (algo_dict["gnd_truth_info"])["ECG_R_Peaks"]
+        missed_beat_segments = []
+
+        last_end_idx = 0
+        for iter_idx, peak_location in enumerate(true_peak_locations):
+            segment_begin = last_end_idx
+            peak_idx = peak_location
+            # check if last peak
+            if peak_location == true_peak_locations[-1]:
+                segment_end = signal_beats.size - 1     # segment end is last index
+            else:
+                # segment end is halfway to next beat
+                segment_end = peak_location + ceildiv(true_peak_locations[iter_idx + 1] - peak_location, 2)
+            last_end_idx = segment_end
+
+            # check if missed beat (naively) and iff, add to list of missed beat segments
+            if naive_misses[peak_location]:
+                beat_segment_tuple = (gnd_truth_beats[segment_begin:segment_end], signal_beats[segment_begin:segment_end])
+                missed_beat_segments.append(beat_segment_tuple)
+
+        # iterate all missed beat segements and discern displacements, false positives and missed beats
+
+        truly_missed_beats = 0
+        displacements = []
+        truly_false_positives = 0
+        
+        for segment_tuple in missed_beat_segments:
+            gnd_truth_segment = segment_tuple[0]
+            #gnd_truth_beat_index = (np.nonzero(gnd_truth_segment))[0][0]
+            signal_segment = segment_tuple[1]
+
+            # check if truly missed beat (no peak in signal segment whatsoever)
+            if np.count_nonzero(signal_segment) == 0:
+                truly_missed_beats = truly_missed_beats + 1
+                continue
+            else:
+                # identify closest signal peak to ground truth beat (as displaced beat)
+                distances_to_beat = np.abs(np.subtract((np.nonzero(gnd_truth_segment)), (np.nonzero(signal_segment))))
+                # displacement as distance in samples
+                min_distance = np.min(distances_to_beat)
+                displacements.append(min_distance)
+
+                # check if also false positives present (for 1 beat in gnd truth segment, more than 1 peak in signal segment)
+                if np.count_nonzero(signal_segment) > 1:
+                    truly_false_positives = truly_false_positives + (np.count_nonzero(signal_segment) - 1)
+
+
+        # calculate mean displacement distance in samples and standard deviation
+        truly_displacements = len(displacements)
+        mean_displacements = np.mean(displacements)
+        std_displacements = np.std(displacements)
+
+        # store quality metrics
+        algo_dict["true_misses"] = truly_missed_beats
+        algo_dict["true_false_pos"] = truly_false_positives
+        algo_dict["true_displace"] = truly_displacements
+        algo_dict["displace_mean"] = mean_displacements
+        algo_dict["displace_std"] = std_displacements
+
 
     
     # print metric reports
     for algo_name, algo_dict in peakFind_dicts.items():
+        print("---------------------------------------------------------------------------------------")
+        print("---------------------------------------------------------------------------------------")
         print("##########", algo_name, "##########")
         ###############
         print("### GROUND TRUTH RESULTS ###")
@@ -229,10 +301,24 @@ def main():
         print("Took in total (sec): ", algo_dict["sig_exec_time"])
         print("Sig_Beat_Amount: ", np.count_nonzero((algo_dict["sig_results"])["ECG_R_Peaks"]))
         ###############
-        print("### COMPARISION METRICS ###")
+        print("### COMPARISION METRICS NAIVELY ###")
         print("Amount matches found: ", algo_dict["matches_amount"])
         print("Amount misses found: ", algo_dict["misses_amount"])
         print("Amount false + found: ", algo_dict["false_pos_amount"])
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        print("+++++++++++ Comparision Metrics Truly +++++++++++++++++++++++")
+        print("WDH REF BEAT COUNT: ", np.count_nonzero((algo_dict["gnd_truth_results"])["ECG_R_Peaks"]))
+        print("WDH SIG BEAT COUNT: ", np.count_nonzero((algo_dict["sig_results"])["ECG_R_Peaks"]))
+        print("WDH MATCH TOTAL: ", algo_dict["matches_amount"])
+        print("True Misses Amount: ", algo_dict["true_misses"])
+        print("True False Positives Amount: ", algo_dict["true_false_pos"])
+        print("True Displacements Amount: ", algo_dict["true_displace"])
+        print("Mean of Displacements in Samples: ", algo_dict["displace_mean"])
+        print("Standard Deviation of Displacements: ", algo_dict["displace_std"])
+
+        print("---------------------------------------------------------------------------------------")
+        print("---------------------------------------------------------------------------------------")
+
 
 
     # TODO Implement Method Choosing based on Quality Metrics
