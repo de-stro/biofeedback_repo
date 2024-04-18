@@ -3,9 +3,7 @@
     channel 8, in BrainFlow Format (CSV)
 """
 
-import operator
 import math 
-import pywt
 import numpy as np
 import time 
 import matplotlib.pyplot as plt
@@ -151,7 +149,8 @@ def epoch_for_QRS_and_noise(noisy_signal, reference_signal = None):
     print("mean duration for QRS complex (in sec): ", np.mean(epochs_duration))
     print("duration of 10th QRS complex (in sec): ", ((ref_waves["ECG_R_Offsets"])[9] - (ref_waves["ECG_R_Onsets"])[9]) / sampling_rate)
     '''
-
+    # TODO FIX BUG with new neurokit2 version (0.2.7 instead of 0.2.3) regarding conversion float NaN to integer
+    # BUG with 0.2.3 version another bug occurs earlier at LOC::116 from neurokit2 signal_interpolate ("operands could not be broadcast together with shapes (69,) (15001,)")
     # signal delineation to create epochs of noisy signal around QRS-complexes found 
     qrs_epochs = nk.epochs_create(noisy_signal, events = onsets_R_list, sampling_rate = sampling_rate, epochs_start = 0, 
                                 epochs_end = qrs_epochs_duration.tolist(), event_labels = None, event_conditions = None, baseline_correction = False)
