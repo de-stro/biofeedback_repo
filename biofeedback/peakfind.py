@@ -1,6 +1,3 @@
-import operator
-import math 
-import pywt
 import numpy as np
 import scipy.signal as scisig
 import sklearn.preprocessing as sklprep
