@@ -16,19 +16,19 @@ ecg_channel = [BoardShim.get_ecg_channels(board_id).pop()] # last channel is ECG
 
 # TODO Clean this up
 #filepaths = []
-path_dir_01 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Adele_2024-02-01_19-31-18'
+path_dir_01 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_01_2024-02-01_19-31-18'
 name_file_01 = 'BrainFlow-RAW_2024-02-01_19-31-18_0.csv'
 #filepaths.append(os.path.join(path_dir_01, name_file_01))
-path_dir_02 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Dennis_2024-02-02_12-11-33'
+path_dir_02 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_02_2024-02-02_12-11-33'
 name_file_02 = 'BrainFlow-RAW_2024-02-02_12-11-33_0.csv'
 #filepaths.append(os.path.join(path_dir_02, name_file_02))
-path_dir_03 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Linn_2024-02-03_18-07-41'
+path_dir_03 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_03_2024-02-03_18-07-41'
 name_file_03 = 'BrainFlow-RAW_2024-02-03_18-07-41_0.csv'
 #filepaths.append(os.path.join(path_dir_03, name_file_03))
-path_dir_04 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Felix_2024-02-05_21-16-18'
+path_dir_04 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_04_2024-02-05_21-16-18'
 name_file_04 = 'BrainFlow-RAW_2024-02-05_21-16-18_0.csv'
 #filepaths.append(os.path.join(path_dir_04, name_file_04))
-path_dir_05 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\Gabriel_2024-02-09_11-30-48'
+path_dir_05 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_05_2024-02-09_11-30-48'
 name_file_05 = 'BrainFlow-RAW_2024-02-09_11-30-48_0.csv'
 #filepaths.append(os.path.join(path_dir_05, name_file_05))
 
