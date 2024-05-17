@@ -10,11 +10,13 @@ import neurokit2 as nk
 import mne
 from mne.preprocessing import ICA, corrmap, create_ecg_epochs, create_eog_epochs
 
-import data.offlinedata as offD
+import data.data_offline as offD
 import data.preprocessing as prepro
 
 import ica as icascript
 import utility as util
+
+import traceback
 
 board_id = BoardIds.CYTON_BOARD
 sampling_rate = BoardShim.get_sampling_rate(board_id)
@@ -49,6 +51,8 @@ def segment_peaks_equidistant_with_ref_peaks(ref_peaks_array, sig_peaks_array):
 def calculate_metrics_with_reference(ref_peaks, sig_peaks):
     """calculate_metrics_with_reference calculates
     """
+    # TODO Wie errors handeln? in welcher Funktion? Eher high level funktionen die
+    # mit den konkreten methoden umgehen (hier wird angenommen alles passt)
 
     peak_segments = segment_peaks_equidistant_with_ref_peaks(ref_peaks, sig_peaks)
 
@@ -101,8 +105,10 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
     try:
         f_1_score = (2 * true_hits) / ((2 * true_hits) + true_false_positives + true_misses)
     except:
+        error_msg = traceback.format_exc()
         f_1_score = 0
         print("Calculating F_1 Score, an Error occured!")
+        print(error_msg)
 
     # calculate the JF-score according to TODO PAPER BERN PORR 
     jf_score = f_1_score * jitter_score * 100
@@ -114,13 +120,17 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
         sensitivity = true_hits / (true_hits + true_misses)
     except:
         sensitivity = 0
+        error_msg = traceback.format_exc()
         print("Calculating Sensitivity, an Error occured!")
+        print(error_msg)
 
-    results = {
+    results_dict = {
         "true_positives": true_hits,
         "false_negatives": true_misses,
-        "false positives": true_false_positives,
+        "false_positives": true_false_positives,
+        "amount_displacements": len(sample_displacements),
         "mean_displacement_sample": np.mean(sample_displacements),
+        "std_displacement_sample": np.std(sample_displacements),
         "avg_jitter_value_millis": avg_jitter_millis,
         "jitter_score": jitter_score,
         "f_1_score": f_1_score,
@@ -128,53 +138,20 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
         "sensitivity": sensitivity
     }
 
-    return results
+    return results_dict
 
 
 
-    """
-    # TODO ASSERT ref_segment contains exactly one peak (1) and rest is zeros!)
-    # TODO otherwise raise error or skip segment (???)
+def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
 
-    match = (np.count_nonzero(np.logical_and(ref_segment, signal_segment)) == 1)  # True if hit
-    # all peaks that are either a displaced hit or false positives
-    unmatched_signal_peaks = np.logical_xor(ref_segment, signal_segment)
-
-    # if true, redundant peaks are present (false positives), besides one displaced hit
-    redundancy = (np.count_nonzero(unmatched_signal_peaks) > 1)
-
-    # check if *true* miss (no peak in signal segment whatsoever) 
-    if np.count_nonzero(signal_segment) == 0:
-        true_misses += 1
-        continue
-
-    # check if hit (possibly with further false positives present)
-    if match:
-        true_hits += 1
-        
-        # check if further false positives are present
-        if redundancy:
-            true_false_positives += np.count_nonzero(unmatched_signal_peaks)
-
-        continue
-        
-
-    # at this point there must be a displacement (possibly with further false positives present)
-    # identify signal peak closest to reference peak
-    distances_to_ref_peak = np.abs(np.subtract((np.nonzero(ref_segment)[0]), (np.nonzero(signal_segment)[0])))
-    # displacement as distance in samples
-    min_distance = np.min(distances_to_ref_peak)
-    sample_displacements.append(min_distance)
-
-    # if present in signal segment, keep track of false positives (all unmatched peaks except displaced hit)
-    true_false_positives += (np.count_nonzero(unmatched_signal_peaks) - 1)
-    """
-
-
-def evaluate_all_peak_detect_methods(ecg_related_ic, ecg_reference):
+    # TODO variablen auslagern in methoden rumpf
+    # first peak correction by neurokit
+    neurokit_peak_correction = False
+    # afterwards naive peak sample value check / correction
+    naive_peak_sample_correction = False
 
     ################ Parameterize and Profile NeuroKit2. Peak-Detection Algorithms ################################
-    # setup dicts for each neurokit peak-detection algorithm 
+    # setup dicts for each neurokit peak-detection algorithm (include version with cleaned input if provided by NeuroKit2)
     # TODO (w/ and w/o cleaned data, if applicable) -> macht das Sinn, das jeweils mit und ohne?
     # TODO Parameterize the methods independently??? -> geht über Scope hinaus
     # TODO Untersuche Neurokit Fehler bei Benutzung mancher Methoden
@@ -184,68 +161,85 @@ def evaluate_all_peak_detect_methods(ecg_related_ic, ecg_reference):
         "dirty_pantompkins1985" : {"method": "pantompkins1985", "clean": False},
         "clean_pantompkins1985" : {"method": "pantompkins1985", "clean": True},
         "dirty_hamilton2002" : {"method": "hamilton2002", "clean": False},
-        "clean_hamilton2002" : {"method": "hamilton2002", "clean": True},  
-        "zong2003" : {"method": "zong2003", "clean": False},
-        "martinez2004" : {"method": "martinez2004", "clean": False},
-        "christov2004" : {"method": "christov2004", "clean": False},
-        # TODO Fehler untersuchen (index out of bounds)
+        "clean_hamilton2002" : {"method": "hamilton2002", "clean": True},
+        # TODO gamboa2008 Fehler untersuchen (index out of bounds)
         #"dirty_gamboa2008" : {"method": "gamboa2008", "clean": False},
         #"clean_gamboa2008" : {"method": "gamboa2008", "clean": True},
         "dirty_elgendi2010" : {"method": "elgendi2010", "clean": False},
         "clean_elgendi2010" : {"method": "elgendi2010", "clean": True},
         "dirty_engzeemod2012" : {"method": "engzeemod2012", "clean": False},
         "clean_engzeemod2012" :  {"method": "engzeemod2012", "clean": True},
-        # TODO Fehler untersuchen (not implemented)
-        #"manikandan2012" : {"method": "manikandan2012", "clean": False},
         "dirty_kalidas2017" : {"method": "kalidas2017", "clean": False},
+        # TODO Remark: Only dummy for cleaning method of kalidas2017 provided by neurokit2, 
+        # i.e not fully implemented yet (as of 16.05.2024)
         "clean_kalidas2017" : {"method": "kalidas2017", "clean": True},
-        "nabian2018" :  {"method": "nabian2018", "clean": False},
-        "rodrigues2021" : {"method": "rodrigues2021", "clean": False},
-        # TODO Fehler untersuchen (not implemented bzw. "vg" method (nur für clean?))
+        # TODO emrich2023 Fehler untersuchen (not implemented bzw. "vg" method (nur für clean?))
+        # TODO UPDATE THE NEUROKIT IMPORT
         #"dirty_emrich2023" :  {"method": "emrich2023", "clean": False},
         #"clean_emrich2023" : {"method": "emrich2023", "clean": True},
+
+        # detection methods with no cleaning method provided yet (by neurokit2) or 
+        # not forseen at all (by implementation authors)
+        "zong2003" : {"method": "zong2003", "clean": False},
+        "martinez2004" : {"method": "martinez2004", "clean": False},
+        "christov2004" : {"method": "christov2004", "clean": False},
+        "nabian2018" :  {"method": "nabian2018", "clean": False},
+        "rodrigues2021" : {"method": "rodrigues2021", "clean": False},
+        # TODO manikandan2012 Fehler untersuchen (not implemented) ?!?!
+        # TODO UPDATE THE NEUROKIT IMPORT
+        #"manikandan2012" : {"method": "manikandan2012", "clean": False},
         "promac" : {"method": "promac", "clean": False}
     }
 
-    # execute and profile neurokit peak-detection algorithms for REF signal as ground truth
+    # execute and profile neurokit peak-detection algorithms for REF ECG signal as ground truth
 
     ### Delineate/Extract R-peaks of ECG_REF for ground truth peak labeling
-    # approach:     use respective peak-detection method on ecg_reference (TODO CITE with artifact correction using the method of Lipponen & Tarvainen (2019) implemented by neurokit2)
-    #               and check additionally if sample value is highest in area of 80ms around the peak (+/- 40ms, so +/-10 samples at 250Hz)
-    #               (since QRS duration in healthy adult lasts around 80-100ms TODO CITE wikipedia)
+    # approach 1:   use respective peak-detection method on ecg_reference
+    #               TODO adress limitation: metric evaluation script only measures deterioration of peak detection method
+    #               when using dirty signal (ecg_ic) instead of ECG refrence signal
+    #
+    # approach 2:   use respective peak-detection method on ecg_reference and employ artifact correction provided by neurokit2 
+    #               (TODO CITE with artifact correction using the method of Lipponen & Tarvainen (2019) implemented by neurokit2)
+    # further:      additionally perform "naive" peak sample checking, i.e if sample value is highest in area of 80ms around the peak 
+    #               (+/- 40ms, so +/-10 samples at 250Hz) (since QRS duration in healthy adult lasts around 80-100ms TODO CITE wikipedia)
 
     for algo_name, algo_dict in peakDetect_dicts.items():
 
         if algo_dict["clean"]:
             time_start = time.time()
-            ref_signal = nk.ecg_clean(ecg_reference, sampling_rate=sampling_rate, method=algo_dict["method"])
+            ref_signal = nk.ecg_clean(ecg_sync_ref, sampling_rate=sampling_rate, method=algo_dict["method"])
         else:
-            ref_signal = ecg_reference 
+            ref_signal = ecg_sync_ref 
             time_start = time.time()
         
-        ref_results, ref_info = nk.ecg_peaks(ref_signal, sampling_rate = sampling_rate, method = algo_dict["method"], correct_artifacts = True, show = False)
-        time_total = time.time() - time_start
+        # perform peak detection with artifact correction provided by neurokit2 if desired
+        if neurokit_peak_correction:
+            ref_results, ref_info = nk.ecg_peaks(ref_signal, sampling_rate = sampling_rate, method = algo_dict["method"], correct_artifacts = True, show = False)
+        else:
+            ref_results, ref_info = nk.ecg_peaks(ref_signal, sampling_rate = sampling_rate, method = algo_dict["method"], correct_artifacts = False, show = False)
 
-        # TODO Implement manual peak-correction (?)
-        '''
-        ####################
-        # check, if each sample value around detected peak (+/- 10 samples) is highest, correct otherwise
-        ####################
-        ref_peakSamples = ref_info["ECG_R_Peaks"]
-        nk.events_plot(ref_peakSamples, ref_signal)
-        plt.show()
-        for peak in ref_peakSamples:
-            peak_height = ref_signal[peak]
-            check_range = list(range(peak-10, peak+10))
-            for checkSample in check_range:
-                if ref_signal[checkSample] > peak_height:
-                    print("ERROR FOR ", algo_name, " in REF Peak Detection")
-                    print("ERROR!: peak at ", peak, "-th sample (", ref_signal[peak], ") is lower than value (", ref_signal[checkSample], ") of ", checkSample, "-th sample")
-                    print("MANUAL ARTIFCAT CORRECTION WAS EMPLOYED")
-                    # change peak location to new maxima found
-                    peak = checkSample
-        ####################
-        '''
+        # perform additionally "naive" sample value check and peak correction if desired
+        # TODO Hübsch machen und Funktion prüfen !!!
+        if naive_peak_sample_correction:
+            ####################
+            # check, if each sample value around detected peak (+/- 10 samples) is highest, correct otherwise
+            ####################
+            ref_peakSamples = ref_info["ECG_R_Peaks"]
+            nk.events_plot(ref_peakSamples, ref_signal)
+            plt.show()
+            for peak in ref_peakSamples:
+                peak_height = ref_signal[peak]
+                check_range = list(range(peak-10, peak+10))
+                for checkSample in check_range:
+                    if ref_signal[checkSample] > peak_height:
+                        print("ERROR FOR ", algo_name, " in REF Peak Detection")
+                        print("ERROR!: peak at ", peak, "-th sample (", ref_signal[peak], ") is lower than value (", ref_signal[checkSample], ") of ", checkSample, "-th sample")
+                        print("MANUAL ARTIFCAT CORRECTION WAS EMPLOYED")
+                        # change peak location to new maxima found
+                        peak = checkSample
+            ####################
+
+        time_total = time.time() - time_start
 
         algo_dict["gnd_truth_results"] = ref_results
         algo_dict["gnd_truth_info"] = ref_info
@@ -253,13 +247,14 @@ def evaluate_all_peak_detect_methods(ecg_related_ic, ecg_reference):
 
 
     # execute and profile neurokit peak-detection algorithms on dirty signal for comparision
+    # do not use any artifact / peak correction whatsoever (for comparability)
     for algo_name, algo_dict in peakDetect_dicts.items():
 
         if algo_dict["clean"]:
             time_start = time.time()
-            ecg_signal = nk.ecg_clean(ecg_related_ic, sampling_rate=sampling_rate, method=algo_dict["method"])
+            ecg_signal = nk.ecg_clean(ecg_ic, sampling_rate=sampling_rate, method=algo_dict["method"])
         else:
-            ecg_signal = ecg_related_ic 
+            ecg_signal = ecg_ic 
             time_start = time.time()
 
         sig_results, sig_info = nk.ecg_peaks(ecg_signal, sampling_rate = sampling_rate, method = algo_dict["method"], correct_artifacts = False, show = False)
@@ -280,52 +275,11 @@ def evaluate_all_peak_detect_methods(ecg_related_ic, ecg_reference):
         signal_beats = np.array((algo_dict["sig_results"])["ECG_R_Peaks"])
         signal_beat_amount = np.count_nonzero(signal_beats)
 
-        metric_dict = calculate_metrics_with_reference(gnd_truth_beats, signal_beats)
-
-
+        metrics_dict = calculate_metrics_with_reference(gnd_truth_beats, signal_beats)
         # store quality metrics
-        algo_dict["true_misses"] = truly_missed_beats
-        algo_dict["true_false_pos"] = truly_false_positives
-        algo_dict["true_displace"] = truly_displacements
-        algo_dict["displace_mean"] = mean_displacements
-        algo_dict["displace_std"] = std_displacements
+        algo_dict["metrics_dict"] = metrics_dict
         
-
-    """
-    # print metric reports
-    for algo_name, algo_dict in peakDetect_dicts.items():
-        print("---------------------------------------------------------------------------------------")
-        print("---------------------------------------------------------------------------------------")
-        print("##########", algo_name, "##########")
-        ###############
-        print("### GROUND TRUTH RESULTS ###")
-        print("Took in total (sec): ", algo_dict["gnd_truth_exec_time"])
-        print("Ref_Beat_Amount: ", np.count_nonzero((algo_dict["gnd_truth_results"])["ECG_R_Peaks"]))
-        ###############
-        print("### DIRTY SIGNAL RESULTS ###")
-        print("### DIRTY SIGNAL RESULTS ###")
-        print("Took in total (sec): ", algo_dict["sig_exec_time"])
-        print("Sig_Beat_Amount: ", np.count_nonzero((algo_dict["sig_results"])["ECG_R_Peaks"]))
-        ###############
-        print("### COMPARISION METRICS NAIVELY ###")
-        print("Amount matches found: ", algo_dict["matches_amount"])
-        print("Amount misses found: ", algo_dict["misses_amount"])
-        print("Amount false + found: ", algo_dict["false_pos_amount"])
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-        print("+++++++++++ Comparision Metrics Truly +++++++++++++++++++++++")
-        print("WDH REF BEAT COUNT: ", np.count_nonzero((algo_dict["gnd_truth_results"])["ECG_R_Peaks"]))
-        print("WDH SIG BEAT COUNT: ", np.count_nonzero((algo_dict["sig_results"])["ECG_R_Peaks"]))
-        print("WDH MATCH TOTAL: ", algo_dict["matches_amount"])
-        print("True Misses Amount: ", algo_dict["true_misses"])
-        print("True False Positives Amount: ", algo_dict["true_false_pos"])
-        print("True Displacements Amount: ", algo_dict["true_displace"])
-        print("Mean of Displacements in Samples: ", algo_dict["displace_mean"])
-        print("Standard Deviation of Displacements: ", algo_dict["displace_std"])
-
-        print("---------------------------------------------------------------------------------------")
-        print("---------------------------------------------------------------------------------------")
-
-    """
+    return peakDetect_dicts
 
     
 
@@ -522,7 +476,7 @@ def main():
         false_positives = np.logical_xor(gnd_truth_beats, signal_beats)
         false_positives = np.logical_and(false_positives, np.logical_not(gnd_truth_beats))
         false_pos_amount = np.count_nonzero(false_positives)
-        algo_dict["false_pos_amount"] = false_pos_amount
+        #algo_dict["false_pos_amount"] = false_pos_amount
 
         # calculate peak displacements 
         # TODO Explain
@@ -600,18 +554,22 @@ def main():
         try:
             assert algo_dict["matches_amount"] == ergebnisse["true_positives"], "Matches Amount does not Match"
         except:
+            print("in the following method: ", algo_dict["method"])
             print("QÄQÄQÄQÄQÄÄQQÄQÄÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄ Matches Amount does not Match")
         try:
             assert algo_dict["true_misses"] == ergebnisse["false_negatives"], "Misses Amount does not match"
         except:
+            print("in the following method: ", algo_dict["method"])
             print("QÄQÄQÄQÄQÄÄQQÄQÄÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄ Misses Amount does not match")
         try:
             assert algo_dict["true_false_pos"] == ergebnisse["false positives"], " False Positives Amount does not match"
         except:
+            print("in the following method: ", algo_dict["method"])
             print("QÄQÄQÄQÄQÄÄQQÄQÄÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄ False Positives Amount does not match")
         try:
             assert algo_dict["displace_mean"] == ergebnisse["mean_displacement_sample"], "Mean Displacement in Samples does not match"
         except:
+            print("in the following method: ", algo_dict["method"])
             print("QÄQÄQÄQÄQÄÄQQÄQÄÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄQÄ Mean Displacement in Samples does not match")
         """
         assert algo_dict["matches_amount"] == ergebnisse["true_positives"], "Matches Amount does not Match"
@@ -620,7 +578,7 @@ def main():
         assert algo_dict["displace_mean"] == ergebnisse["mean_displacement_sample"], "Mean Displacement in Samples does not match"
         """
     
-
+    
     # print metric reports
     for algo_name, algo_dict in peakFind_dicts.items():
         print("---------------------------------------------------------------------------------------")
@@ -639,7 +597,7 @@ def main():
         print("### COMPARISION METRICS NAIVELY ###")
         print("Amount matches found: ", algo_dict["matches_amount"])
         print("Amount misses found: ", algo_dict["misses_amount"])
-        print("Amount false + found: ", algo_dict["false_pos_amount"])
+        #print("Amount false + found: ", algo_dict["false_pos_amount"])
         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
         print("+++++++++++ Comparision Metrics Truly +++++++++++++++++++++++")
         print("WDH REF BEAT COUNT: ", np.count_nonzero((algo_dict["gnd_truth_results"])["ECG_R_Peaks"]))
@@ -653,6 +611,44 @@ def main():
 
         print("---------------------------------------------------------------------------------------")
         print("---------------------------------------------------------------------------------------")
+    
+    print("################################################################################")
+    print("################################################################################")
+    print("################################################################################")
+    print("################################################################################")
+    print("################################################################################")
+    print("################################################################################")
+    print("NEEEEEEEEEEEEEEEWWWWWWWWWWWWWWWWWWWWWWWWWWWW MEEEEEEEEEEEEEEEEEEETHHHHHHHHHHHHHH")
+
+    methods_dict = evaluate_all_peak_detect_methods(ecg_related_timeseries, ecg_reference)
+    for algo_name, algo_dict in methods_dict.items():
+        metrics_dict = algo_dict["metrics_dict"]
+        print("---------------------------------------------------------------------------------------")
+        print("---------------------------------------------------------------------------------------")
+        print("##########", algo_name, "##########")
+        ###############
+        print("### TIMING RESULTS ###")
+        print("Ground truth took in total (sec): ", algo_dict["gnd_truth_exec_time"])
+        print("Dirty signal took in total (sec): ", algo_dict["sig_exec_time"])
+        ###############
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        print("+++++++++++ COMPARISION METRICS +++++++++++++++++++++++")
+        print("REF BEAT COUNT: ", np.count_nonzero((algo_dict["gnd_truth_results"])["ECG_R_Peaks"]))
+        print("SIG BEAT COUNT: ", np.count_nonzero((algo_dict["sig_results"])["ECG_R_Peaks"]))
+        print("TRUE Positives total amount: ", metrics_dict["true_positives"])
+        print("True Misses total amount: ", metrics_dict["false_negatives"])
+        print("True False Positives total amount: ", metrics_dict["false_positives"])
+        print("Peak displacements total amount: ", metrics_dict["amount_displacements"])
+        print("Sample Displacement Mean: ", metrics_dict["mean_displacement_sample"])
+        print("Sample Displacement Standard Deviation: ", metrics_dict["std_displacement_sample"])
+        print("Jitter Value (Millis) Average: ", metrics_dict["avg_jitter_value_millis"])
+        print("Jitter Score: ", metrics_dict["jitter_score"])
+        print("F_1 Score: ", metrics_dict["f_1_score"])
+        print("Resulting JF_Score: ", metrics_dict["jf_score"])
+        print("Sensitivity reported: ", metrics_dict["sensitivity"])
+        print("---------------------------------------------------------------------------------------")
+        print("---------------------------------------------------------------------------------------")
+
 
 
 
