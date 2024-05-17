@@ -22,6 +22,13 @@ board_id = BoardIds.CYTON_BOARD
 sampling_rate = BoardShim.get_sampling_rate(board_id)
 componentAmountConsidered = 7
 
+# Overview of TODO
+# TODO 1: Error Handling (weiterreichen, wo Verantwortlichkeiten?)
+# TODO 2: Naive Peak Correction für Ground Truth ??
+# TODO 3: Kaputte Neurokit Methoden checken (-> Neurokit2 import updaten?)
+# TODO 4: Testfälle schreiben wo sinnvoll (insb segmenting und metric calculation)
+# TODO 5: perform_peak_detection Service Methode implementieren
+# TODO 6: Chose PD method based on quality metrics?
 
 def segment_peaks_equidistant_with_ref_peaks(ref_peaks_array, sig_peaks_array):
     segments = []
