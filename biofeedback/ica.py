@@ -108,32 +108,35 @@ def calculate_snr_correlation_wR_CGPT(ref_signal, noisy_signal):
 '''
 def epoch_for_QRS_and_noise(noisy_signal, reference_signal = None):
 
+    naive_peak_correction = True
+
     # if passed, use reference signal for delineation (to mark QRS-complexes etc) 
     if reference_signal is not None:
         # detect R-peaks in reference signal
         ref_peaks_signal, ref_peaks_info = nk.ecg_peaks(reference_signal, sampling_rate = sampling_rate, 
-                                                        method = 'neurokit', correct_artifacts = True, show = True)
-        """
-        # TODO Employ "naive" peak correction additionally 
-        # was bringt das genau? -> AU?ERDEM!! : geht nur fur sauberes REF ECG,
-        # da nur dort safe ist das kein Peak höher als R-Peak (im besten Fall)
-        # bzw nur dort zeichnet highest sample value den R-Peak aus (bei noisy signal nicht unbedingt!!)
-        corrected_peak_locs = utility.naive_peak_value_surround_checks(reference_signal, ref_peaks_info["ECG_R_Peaks"])
-        nk.events_plot(corrected_peak_locs, reference_signal)
-        plt.show()
-        ref_signals, waves = nk.ecg_delineate(reference_signal, corrected_peak_locs, sampling_rate = sampling_rate,
-                                                  method='dwt', show=True, show_type = "peaks")
-        """
-        # Delineate cardiac cycle of reference signal
-        ref_signals, waves = nk.ecg_delineate(reference_signal, ref_peaks_info["ECG_R_Peaks"], sampling_rate = sampling_rate, 
-                                              method='dwt', show=True, show_type = "bounds_R")
+                                                        method = 'neurokit', correct_artifacts = True, show = False)
+        
+        peak_locations = ref_peaks_info["ECG_R_Peaks"]
+        # additionally employ "naive" peak correction, by checking if peak sample has highest value compared to 
+        # surrounding samples (only reasonable for clean ref ecg with no noisy peaks inbetween R-peaks)
+        # TODO Determine appropriate check range for peak correction!!
+        if naive_peak_correction:
+            peak_locations = utility.naive_peak_value_surround_checks(reference_signal, peak_locations, 10)
+            # TEST VISUAL!!!
+            #nk.events_plot(corrected_peak_locs, reference_signal)
+            #plt.show()
+
+        # Delineate cardiac cycle of reference signal (with peak locations checked additionally)
+        ref_signals, waves = nk.ecg_delineate(reference_signal, peak_locations, sampling_rate = sampling_rate,
+                                                  method='dwt', show=False, show_type = "peaks")
+        
     else:
         # detect R-peaks in noisy signal
         noisy_peaks_signal, noisy_peaks_info = nk.ecg_peaks(noisy_signal, sampling_rate = sampling_rate, 
-                                                        method ='neurokit', correct_artifacts = True, show = True)
+                                                        method ='neurokit', correct_artifacts = True, show = False)
         # Delineate cardiac cycle of noisy signal
         noisy_signals, waves = nk.ecg_delineate(noisy_signal, noisy_peaks_info["ECG_R_Peaks"], sampling_rate = sampling_rate,
-                                                  method = 'dwt', show = True, show_type = "bounds_R")
+                                                  method = 'dwt', show = False, show_type = "bounds_R")
         
     onsets_R_list = waves["ECG_R_Onsets"]
     offsets_R_list = waves["ECG_R_Offsets"]

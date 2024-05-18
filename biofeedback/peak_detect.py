@@ -153,9 +153,9 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
 
     # TODO variablen auslagern in methoden rumpf
     # first peak correction by neurokit
-    neurokit_peak_correction = False
+    neurokit_peak_correction = True
     # afterwards naive peak sample value check / correction
-    naive_peak_sample_correction = False
+    naive_peak_sample_correction = True
 
     ################ Parameterize and Profile NeuroKit2. Peak-Detection Algorithms ################################
     # setup dicts for each neurokit peak-detection algorithm (include version with cleaned input if provided by NeuroKit2)
@@ -192,8 +192,6 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
         "christov2004" : {"method": "christov2004", "clean": False},
         "nabian2018" :  {"method": "nabian2018", "clean": False},
         "rodrigues2021" : {"method": "rodrigues2021", "clean": False},
-        # TODO manikandan2012 Fehler untersuchen (not implemented) ?!?!
-        # TODO UPDATE THE NEUROKIT IMPORT
         "manikandan2012" : {"method": "manikandan2012", "clean": False},
         "promac" : {"method": "promac", "clean": False}
     }
@@ -219,35 +217,16 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
             ref_signal = ecg_sync_ref 
             time_start = time.time()
         
-        # perform peak detection with artifact correction provided by neurokit2 if desired
-        if neurokit_peak_correction:
-            ref_results, ref_info = nk.ecg_peaks(ref_signal, sampling_rate = sampling_rate, method = algo_dict["method"], correct_artifacts = True, show = False)
-        else:
-            ref_results, ref_info = nk.ecg_peaks(ref_signal, sampling_rate = sampling_rate, method = algo_dict["method"], correct_artifacts = False, show = False)
-
-        # perform additionally "naive" sample value check and peak correction if desired
-        # TODO Hübsch machen und Funktion prüfen !!!
-        if naive_peak_sample_correction:
-            ####################
-            # check, if each sample value around detected peak (+/- 10 samples) is highest, correct otherwise
-            ####################
-            ref_peakSamples = ref_info["ECG_R_Peaks"]
-            nk.events_plot(ref_peakSamples, ref_signal)
-            plt.show()
-            for peak in ref_peakSamples:
-                peak_height = ref_signal[peak]
-                check_range = list(range(peak-10, peak+10))
-                for checkSample in check_range:
-                    if ref_signal[checkSample] > peak_height:
-                        print("ERROR FOR ", algo_name, " in REF Peak Detection")
-                        print("ERROR!: peak at ", peak, "-th sample (", ref_signal[peak], ") is lower than value (", ref_signal[checkSample], ") of ", checkSample, "-th sample")
-                        print("MANUAL ARTIFCAT CORRECTION WAS EMPLOYED")
-                        # change peak location to new maxima found
-                        peak = checkSample
-                        # TODO was passiert mit korrigiertem peak (sample location) jetzt?
-            ####################
-
+        # perform peak detection (with artifact correction provided by neurokit2 if desired)
+        ref_results, ref_info = nk.ecg_peaks(ref_signal, sampling_rate = sampling_rate, method = algo_dict["method"], correct_artifacts = neurokit_peak_correction, show = False)
         time_total = time.time() - time_start
+
+        # if desired, additionally perform "naive" peak sample checking / correction, by checking surrounding
+        # samples for (higher) values
+        if naive_peak_sample_correction:
+            # fig_peaks_before = nk.events_plot(ref_info["ECG_R_Peaks"], ref_signal, color = "r")
+            ref_info["ECG_R_Peaks"] = util.naive_peak_value_surround_checks(ref_signal, ref_info["ECG_R_Peaks"], 40)
+            # fig_peaks_after = nk.events_plot(ref_info["ECG_R_Peaks"], ref_signal, color = "g")
 
         algo_dict["gnd_truth_results"] = ref_results
         algo_dict["gnd_truth_info"] = ref_info

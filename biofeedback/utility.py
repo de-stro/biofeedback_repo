@@ -11,12 +11,12 @@ def ceildiv(a, b):
 # correct otherwise
 # TODO signal and peak_sample_locations must be numpy arrays? 
 
-def naive_peak_value_surround_checks(signal, peak_sample_locations):
+def naive_peak_value_surround_checks(signal, peak_sample_locations, sample_check_range:int):
 
     corrected_peak_locs = []
 
     for idx, peak in enumerate(peak_sample_locations):
-        check_range = list(range(peak-10, peak+10))
+        check_range = list(range(peak-sample_check_range, peak+sample_check_range))
         peak_height = signal[peak]
         checked_peak = peak
         for checkSample in check_range:
@@ -28,7 +28,14 @@ def naive_peak_value_surround_checks(signal, peak_sample_locations):
                 peak_height = signal[checked_peak]
         corrected_peak_locs.append(checked_peak)
     
+    # convert output type to match input type
+    if isinstance(peak_sample_locations, np.ndarray):
+        corrected_peak_locs = np.array(corrected_peak_locs)
+    else:
+        assert isinstance(peak_sample_locations, list), "Error: input should either be of type ndarray or list!"
+    
     return corrected_peak_locs
+
 
 # TODO takes and outputs either list or ndarray
 def remove_NaN_padding(values):
