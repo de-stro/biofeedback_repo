@@ -14,8 +14,9 @@ import neurokit2 as nk
 import mne
 from mne.preprocessing import ICA, corrmap, create_ecg_epochs, create_eog_epochs
 
-import data.offlinedata as offD
+import data.data_offline as offD
 import data.preprocessing as prepro
+import utility
 
 board_id = BoardIds.CYTON_BOARD
 sampling_rate = BoardShim.get_sampling_rate(board_id)
@@ -111,20 +112,34 @@ def epoch_for_QRS_and_noise(noisy_signal, reference_signal = None):
     if reference_signal is not None:
         # detect R-peaks in reference signal
         ref_peaks_signal, ref_peaks_info = nk.ecg_peaks(reference_signal, sampling_rate = sampling_rate, 
-                                                        method = 'neurokit', correct_artifacts = False, show = False)
+                                                        method = 'neurokit', correct_artifacts = True, show = True)
+        """
+        # TODO Employ "naive" peak correction additionally 
+        # was bringt das genau? -> AU?ERDEM!! : geht nur fur sauberes REF ECG,
+        # da nur dort safe ist das kein Peak höher als R-Peak (im besten Fall)
+        # bzw nur dort zeichnet highest sample value den R-Peak aus (bei noisy signal nicht unbedingt!!)
+        corrected_peak_locs = utility.naive_peak_value_surround_checks(reference_signal, ref_peaks_info["ECG_R_Peaks"])
+        nk.events_plot(corrected_peak_locs, reference_signal)
+        plt.show()
+        ref_signals, waves = nk.ecg_delineate(reference_signal, corrected_peak_locs, sampling_rate = sampling_rate,
+                                                  method='dwt', show=True, show_type = "peaks")
+        """
         # Delineate cardiac cycle of reference signal
-        ref_signals, waves = nk.ecg_delineate(reference_signal, ref_peaks_info["ECG_R_Peaks"], sampling_rate = sampling_rate,
-                                                  method='dwt', show=False, show_type = "bounds_R")
+        ref_signals, waves = nk.ecg_delineate(reference_signal, ref_peaks_info["ECG_R_Peaks"], sampling_rate = sampling_rate, 
+                                              method='dwt', show=True, show_type = "bounds_R")
     else:
         # detect R-peaks in noisy signal
         noisy_peaks_signal, noisy_peaks_info = nk.ecg_peaks(noisy_signal, sampling_rate = sampling_rate, 
-                                                        method ='neurokit', correct_artifacts = False, show = False)
+                                                        method ='neurokit', correct_artifacts = True, show = True)
         # Delineate cardiac cycle of noisy signal
-        noisy_signals, waves = nk.ecg_delineate(noisy_signal, noisy_peaks_info, sampling_rate = sampling_rate,
-                                                  method = 'dwt', show = False, show_type = "bounds_R")
+        noisy_signals, waves = nk.ecg_delineate(noisy_signal, noisy_peaks_info["ECG_R_Peaks"], sampling_rate = sampling_rate,
+                                                  method = 'dwt', show = True, show_type = "bounds_R")
         
     onsets_R_list = waves["ECG_R_Onsets"]
     offsets_R_list = waves["ECG_R_Offsets"]
+    # TODO Delete: remove NaN padding introduced by neurokit2 ecg_delineation
+    #onsets_R_list = utility.remove_NaN_padding(onsets_R_list)
+    #offsets_R_list = utility.remove_NaN_padding(offsets_R_list)
 
     # ensure that epochs beginn with first R_Offset (hence, a noise_segment) and end with last R_Offset,
     # therefore, last detected QRS complex is included, while first QRS complex might be omitted!
@@ -149,6 +164,12 @@ def epoch_for_QRS_and_noise(noisy_signal, reference_signal = None):
     print("mean duration for QRS complex (in sec): ", np.mean(epochs_duration))
     print("duration of 10th QRS complex (in sec): ", ((ref_waves["ECG_R_Offsets"])[9] - (ref_waves["ECG_R_Onsets"])[9]) / sampling_rate)
     '''
+    # remove NaN padding introduced by neurokit2 ecg_delineation
+    noise_epochs_duration = utility.remove_NaN_padding(noise_epochs_duration)
+    qrs_epochs_duration = utility.remove_NaN_padding(qrs_epochs_duration)
+    onsets_R_list = utility.remove_NaN_padding(onsets_R_list)
+    offsets_R_list = utility.remove_NaN_padding(offsets_R_list)
+
     # TODO FIX BUG with new neurokit2 version (0.2.7 instead of 0.2.3) regarding conversion float NaN to integer
     # BUG with 0.2.3 version another bug occurs earlier at LOC::116 from neurokit2 signal_interpolate ("operands could not be broadcast together with shapes (69,) (15001,)")
     # signal delineation to create epochs of noisy signal around QRS-complexes found 
@@ -337,6 +358,9 @@ def choseBestICA(eeg_data:mne.io.Raw, ecg_ref:mne.io.Raw, amountICs, maxIter):
     return (bestMethod_pTp, ica_dicts)
 
 
+def evaluate_all_ICA_variants(eeg_data:np.ndarray, ecg_ref:np.ndarray, amountICs:int, maxIter:int):
+    ...
+
 
 
 
@@ -368,8 +392,8 @@ def main():
     # Note that the new tmin is assumed to be t=0 for all subsequently called functions
     # TODO Data Cropping auslagern wenn verschiebung der sample label ein problem
     #clean data
-    rawEEG.crop(tmin = 180.0, tmax=240.0)
-    rawECG.crop(tmin = 180.0, tmax=240.0)
+    rawEEG.crop(tmin = 200.0, tmax=260.0)
+    rawECG.crop(tmin = 200.0, tmax=260.0)
     # noisy data (channel 6 dies in the end)
     #rawEEG.crop(tmin = 630.0, tmax=690.0)
     #rawECG.crop(tmin = 630.0, tmax=690.0)
