@@ -223,6 +223,7 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
 
         # if desired, additionally perform "naive" peak sample checking / correction, by checking surrounding
         # samples for (higher) values
+        # TODO Determine appropriate check range for check/correction (in samples)
         if naive_peak_sample_correction:
             # fig_peaks_before = nk.events_plot(ref_info["ECG_R_Peaks"], ref_signal, color = "r")
             ref_info["ECG_R_Peaks"] = util.naive_peak_value_surround_checks(ref_signal, ref_info["ECG_R_Peaks"], 40)
