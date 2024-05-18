@@ -244,6 +244,7 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
                         print("MANUAL ARTIFCAT CORRECTION WAS EMPLOYED")
                         # change peak location to new maxima found
                         peak = checkSample
+                        # TODO was passiert mit korrigiertem peak (sample location) jetzt?
             ####################
 
         time_total = time.time() - time_start
