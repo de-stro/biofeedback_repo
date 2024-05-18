@@ -194,7 +194,7 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
         "rodrigues2021" : {"method": "rodrigues2021", "clean": False},
         # TODO manikandan2012 Fehler untersuchen (not implemented) ?!?!
         # TODO UPDATE THE NEUROKIT IMPORT
-        #"manikandan2012" : {"method": "manikandan2012", "clean": False},
+        "manikandan2012" : {"method": "manikandan2012", "clean": False},
         "promac" : {"method": "promac", "clean": False}
     }
 
