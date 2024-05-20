@@ -10,7 +10,7 @@ import neurokit2 as nk
 import mne
 from mne.preprocessing import ICA, corrmap, create_ecg_epochs, create_eog_epochs
 
-import data.offlinedata as offD
+import data.data_offline as offD
 import data.preprocessing as prepro
 
 import ica as icascript
@@ -30,7 +30,7 @@ def calculate_snr_correlation(clean_signal, noisy_signal):
     correlation = correlation ** 2
     return correlation
 
-'''
+"""
 def calc_crosscorr(signal, noisy):
     # clean the signals first 
     mittelwert = (np.max(signal) + np.min(signal)) / 2
@@ -56,7 +56,7 @@ def calc_crosscorr(signal, noisy):
     print("Calculated Max Corr ", np.max(corr))
 
     return np.max(corr)
-'''
+"""
 
 def compute_cross_correlation(clean_signal, noisy_signal):
     # Compute cross-correlation
@@ -113,7 +113,7 @@ def main():
     for path in filepaths:
         dataRecordings.append(RecordingData(path))
     '''
-    dataRecordings.append(offD.RecordingData(filepaths[1]))
+    dataRecordings.append(offD.RecordingSession(filepaths[1]))
     ########################################
     
     ### perform offline ICA Analysis on loaded and (pre-) filtered (BrainFlow) EEG data of Test Recording No.1

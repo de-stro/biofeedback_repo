@@ -285,7 +285,7 @@ def main():
     for path in filepaths:
         dataRecordings.append(RecordingData(path))
     '''
-    dataRecordings.append(offD.RecordingData(filepaths[1]))
+    dataRecordings.append(offD.RecordingSession(filepaths[1]))
     ########################################
     
     ### perform offline ICA Analysis on loaded and (pre-) filtered (BrainFlow) EEG data of Test Recording No.1
