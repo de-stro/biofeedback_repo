@@ -18,11 +18,11 @@ def main():
     segmented_recording_sessions = []
 
     # load offline (brainflow) recording sessions 
-    for session in data_off.get_offline_recording_sessions():
+    for recording_session in data_off.get_offline_recording_sessions():
 
-        sampling_rate = session.get_description()["sampling_rate"]
+        sampling_rate = recording_session.get_description()["sampling_rate"]
         # TODO does it make difference if ECG is also processed or not?
-        session_data = session.get_preprocessed_data()
+        session_data = recording_session.get_preprocessed_data()
         # session length in sec is amount of samples divided by sampling rate (in Hz)
         recording_length_samples = session_data[0].size
 
@@ -37,9 +37,8 @@ def main():
         if (segments[-1])[0].size < segment_length_samples:
             segments.pop()
 
-        segmented_recording_sessions.append((session, segments))
+        segmented_recording_sessions.append((recording_session, segments))
     
-
     """ TODO TEST For test purposes only
     for (session, segments) in segmented_recording_sessions:
         for idx, segment in enumerate(segments):
@@ -58,11 +57,21 @@ def main():
             plt.show()
     """
 
+    # setup data and metric matrices to store results in
+    ica_matrix = ...
+    ic_select_matrix = ...
+    peak_detect_matrix = ...
+
+
     # employ ICA on every segment of every recording session
 
+    for (recording_session, segments) in segmented_recording_sessions:
+        for segment in segments:
 
-
-    # TODO Evaluate FIRSTLY ON 1 RECORDING ONLY
+            # TODO Evaluate FIRSTLY ON 1 RECORDING ONLY
+            ecg_signal = segment[2]
+            eeg_signals = segment[3:]
+            ica.evaluate_all_MNE_ICA_on_segment(ecg_signal, eeg_signals, component_amount=7, max_iterations=50)
 
    
     # evaluate all ICA variants on 2D data of ECG (only 1 timeseries) and 2D data of EEG

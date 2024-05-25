@@ -17,6 +17,7 @@ from mne.preprocessing import ICA, corrmap, create_ecg_epochs, create_eog_epochs
 import data.data_offline as offD
 import data.preprocessing as prepro
 import utility
+import icselect
 
 board_id = BoardIds.CYTON_BOARD
 sampling_rate = BoardShim.get_sampling_rate(board_id)
@@ -543,46 +544,21 @@ def calulate_ICA_metrics_with_ecg_ref(ecg_ref_signal, ecg_related_component):
     return (snr_ptp, snr_rssq)
 
 
-
-# TODO auslagern in IC-Select Modul
-def identify_ecg_related_ic(ecg_ref_series, ic_timeseries):
-
-    # compute correlation of components with ECG reference to identify ECG-related IC
-    correlations_with_ref = []
-    for ind_component in ic_timeseries:
-        correlations_with_ref.append(np.abs(np.corrcoef(ecg_ref_series, ind_component)[0, 1])) 
-    ecg_related_index = correlations_with_ref.index(max(correlations_with_ref))
-
-    ecg_related_timeseries = ic_timeseries[ecg_related_index]
-    correlation_abs = correlations_with_ref[ecg_related_index]
-
-    "TEST PURPOSE ONLY"
-    ref_signal = ecg_ref_series
-    noisy_signal = ecg_related_timeseries
-    mittelwert = (np.max(ref_signal) + np.min(ref_signal)) / 2
-    normalized_ref = ref_signal - mittelwert
-    normalized_ref = normalized_ref / np.max(normalized_ref)
-
-    mittelwert = (np.max(noisy_signal) + np.min(noisy_signal)) / 2
-    normalized_noisy = noisy_signal - mittelwert
-    normalized_noisy = normalized_noisy / np.max(normalized_noisy) 
-
-    similarity = normalized_noisy * normalized_ref
-    alternative_corr = np.mean(similarity)
-
-    # assert correlation_abs == alternative_corr, "Correlation_ABS is " + correlation_abs + " while sign(mean(sim)) is " + np.sign(np.mean(similarity))
-
-
-    # if correlation negative, flip ecg_related_timeseries
-    #ecg_related_timeseries *= calculate_corr_sign(ecg_ref_series, ecg_related_timeseries)
-
-    return (ecg_related_timeseries, correlation_abs)
-
-
 def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amount, max_iterations):
-    """ TODO methode soll ecg_ref als numpy array und eeg_signls als 2d np-array nehmen und numpa array mit ECG-related ICS raushauen
-    sowie nparray?? oder list whatever mit ica_metric_dicts raushauen
-    """
+    """evaluate_all_MNE_ICA_on_segment _summary_
+
+    Args:
+        ecg_ref_signal (_type_): _description_
+        eeg_signals (_type_): _description_
+        component_amount (_type_): _description_
+        max_iterations (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """    
+    
+    # TODO methode soll ecg_ref als numpy array und eeg_signls als 2d np-array nehmen und numpa array mit ECG-related ICS raushauen
+    #sowie nparray?? oder list whatever mit ica_metric_dicts raushauen
     
     
     # TODO data is assumed to already be preprocessed appropriately 
@@ -651,60 +627,33 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         sources = ica_dict["ica"].get_sources(mne_rawEEG.copy()) 
         ic_timeseries, times = sources.get_data(return_times=True)
         ic_timeseries.flatten()
-        """FOR TEST ONLY """
-        assert ic_timeseries[0].size == ecg_ref_signal.size, "MNE Sources have not same sample length as input array anymore !!!"
         
         # TODO ist das wirklich nötig?
         ica_dict["independent_components"] = ic_timeseries
 
-        # TODO mache IC-Select: rufe hier IC-Select-Funktion auf?? -> auslagern in IC-Select Modul
-        ecg_related_component, corr_value = identify_ecg_related_ic(ecg_ref_signal, ic_timeseries)
+        # identify the ecg-related independent component (by correlating with ecg reference)
+        ecg_related_component, corr_value = icselect.identify_ecg_component_with_ref(ecg_ref_signal, ic_timeseries)
         ecg_related_ics.append(ecg_related_component)
 
-        """ For TEST purposes only ! """
-        # compute correlation of components with ECG reference to identify ECG-related IC
-        correlations_with_ref = []
-        for component in ic_timeseries:
-            correlations_with_ref.append(np.abs(np.corrcoef(ecg_ref_signal, component)[0, 1]))  
-        ecg_related_index = correlations_with_ref.index(max(correlations_with_ref))
-        test_corr = np.corrcoef(ecg_related_component, ic_timeseries[ecg_related_index])[0, 1]
-        #assert test_corr == 1, "ECG_RELATED INDEX TEST FAILED !"
+        # if negatively correlated, flip the ecg-related component around
+        if corr_value < 0:
+            ecg_related_component *= np.sign(corr_value)
 
-        print("IC_SELECT TEST: ECG_RELATED INDEX")
-        print("Method used: ",  ica_dict["method_id"])
-        print("ECG-related Component calulated: ", ecg_related_index, "-th component (starting from 0!)")
-        print("with correlation value of: ", corr_value)
-        #### TEST VISUALLY ########################################################
-        # Plot the sources / results to visually control calculated ECG_component
-        fig, axs = plt.subplots(component_amount + 1, 1, sharex = True)
-        axs[0].plot(ecg_ref_signal)
-        axs[0].set_title('ECG Reference Signal')
-
-        for idx, component in enumerate(ic_timeseries):
-            axs[idx+1].plot(component)
-            axs[idx+1].set_title(str(idx) + "-th independent component")
-        plt.show()
-        #### TEST VISUALLY ########################################################
-
-        # TODO flip component if negatively correlated with ref
-        # TODO Limitation wie geht das ohne ECG Ref signal (in RT pipeline)????
-        # flip ecg-related component if negatively correlated with ref_ecg
-        flip_sign = calculate_corr_sign(ecg_ref_signal, ecg_related_component)
-        ecg_related_component *= calculate_corr_sign(ecg_ref_signal, ecg_related_component)
-
-        """ For TEST Purpose ONLY """
+        """ TEST: if flip successful / correctly
         fig, axs = plt.subplots(2, 1, sharex = True)
         axs[0].plot(ecg_ref_signal)
         axs[0].set_title('ECG Reference Signal')
         axs[1].plot(ecg_related_component)
         axs[1].set_title('Flipped ECG-related IC')
         plt.show()
-
+        """
 
         # compute and store ICA quality metrics (using ECG reference signal for epochs centered around actual QRS complexes)
         snr_ptp, snr_rssq = calulate_ICA_metrics_with_ecg_ref(ecg_ref_signal, ecg_related_component)
         ica_dict["snr_ptp"] = snr_ptp
         ica_dict["snr_rssq"] = snr_rssq
+    
+    return
 
 # TODO REFACTOR THIS
 def main():
@@ -745,7 +694,7 @@ def main():
     #evaluate_all_ICA_variants(dataRecordings[0].get_EEG_data(), dataRecordings[0].get_ECG_data(), amountICs= componentAmountConsidered, maxIter = "auto")
 
     startTime_filter = time.time()
-    # TODO Check if this is already done by BrainFlow Filtering
+    # TODO Check if this is already done by BrainFlow Filtering 
     # TODO Note down that this is necessary (bandpass filter EEG before ICA to prevent slow downward shift) (?)
     # apply bandpass filter(?) on EEG data (before ICA) to prevent slow downward(?) shift (?)
     filt_rawEEG = rawEEG.copy().filter(l_freq=1.0, h_freq=50.0)

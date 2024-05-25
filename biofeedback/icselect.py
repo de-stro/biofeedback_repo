@@ -261,6 +261,45 @@ def main():
     print("(CGPT) SNR corr took ", templ_corr_time_total, " seconds in total")
     '''
 
+def identify_ecg_component_with_ref(ecg_ref_signal, ic_signals):
+    """identify_ecg_component_with_ref _summary_TODO
+
+    Args:
+        ecg_ref_signal (_type_): _description_
+        ic_signals (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+
+    # compute correlation of components with ECG reference to identify ECG-related IC
+    correlations_with_ref = []
+    for ind_component in ic_signals:
+        correlations_with_ref.append(np.corrcoef(ecg_ref_signal, ind_component)[0, 1])
+    
+    ecg_related_index = np.argmax(np.abs(correlations_with_ref))
+    ecg_related_component = ic_signals[ecg_related_index]
+    correlation = correlations_with_ref[ecg_related_index]
+
+    """ TEST: if ECG-related component was correctly identified
+    print("IC_SELECT TEST: ECG_RELATED INDEX")
+    print("ECG-related Component calulated: ", ecg_related_index, "-th component (starting from 0!)")
+    print("with correlation value of: ", correlation)
+    #### TEST VISUALLY ########################################################
+    # Plot the sources / results to visually control calculated ECG_related_component
+    fig, axs = plt.subplots(len(ic_signals) + 1, 1, sharex = True)
+    axs[0].plot(ecg_ref_signal)
+    axs[0].set_title('ECG Reference Signal')
+
+    for idx, component in enumerate(ic_signals):
+        axs[idx+1].plot(component)
+        axs[idx+1].set_title(str(idx) + "-th independent component")
+    plt.show()
+    #### TEST VISUALLY ########################################################
+    """
+
+    return (ecg_related_component, correlation)
+
     
 if __name__ == "__main__":
     main()
