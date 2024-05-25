@@ -257,7 +257,7 @@ def calc_snr_RSSQ_from_epochs(qrs_epochs, noise_epochs):
     snr = 20 * np.log10(qrs_RSSQ_avg / noise_RSSQ_avg)
     return snr
 
-
+# TODO OMIT THIS METHOD
 def choseBestICA(eeg_data:mne.io.Raw, ecg_ref:mne.io.Raw, amountICs, maxIter):
     """Given an eeg_signal, this methods computes ICA using the best performing algorithm based on (pTp) SNR and 
     returns dictionary with the results after fitting (key and dict of ICA dicts)
@@ -360,36 +360,375 @@ def choseBestICA(eeg_data:mne.io.Raw, ecg_ref:mne.io.Raw, amountICs, maxIter):
 
     return (bestMethod_pTp, ica_dicts)
 
+# TODO OMIT THIS METHOD
+def evaluate_all_ICA_variants(eeg_data, ecg_ref, amountICs:int, maxIter:int):
+    """Given an eeg_signal and synchronized reference ecg_signal, this methods computes ICA using all variants provided by MNE and
+    calulates metrics (pTp-SNR etc) for ECG-related IC (component having highest correlation with reference ecg) 
+    returns dictionary with the metrics and results after fitting (key and dict of ICA dicts)
+    """
+    # takes as inputs brainflow data arrays !!! (2D)
+    # data is already assumed to be appropriately preprocessed !!!  
+    # TODO Welche übergreifenden Params noch auslagern? (für direkten Zugriff aus Eval-Script!)
 
-def evaluate_all_ICA_variants(eeg_data:np.ndarray, ecg_ref:np.ndarray, amountICs:int, maxIter:int):
-    ...
+    # transfrom input ecg_ref into 2D array for MNE object creation
+    ecg_ref = [ecg_ref]
+
+    # create mne.io.Raw Objects from input data to perform mne.preprocessing.ica on
+    start_objCreateTime = time.time()
+    mne_rawEEG = createObjectMNE('eeg', eeg_data)
+    mne_rawECG = createObjectMNE('ecg', ecg_ref)
+    objCreateTime = time.time() - start_objCreateTime
+
+    "FOR TEST ONLY"
+    print("§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§")
+    print("CREATION OF MNE RAW OBJ (for ICA evaluation) took in total (sec: ", objCreateTime)
+    print("§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§")
+
+    # TODO OMIT as this was already done (in preprocessing)??
+    # apply bandpass filter(?) on EEG data (before ICA) to prevent slow downward(?) shift (?)
+    # If you intend to fit ICA on Epochs, it is recommended to high-pass filter, 
+    # but not baseline correct the data for good ICA performance. A warning will be emitted otherwise.
+    # TODO warum hier copy nötig? verändert MNE filter was an den daten (inplace?)???
+    raw_EEG_copy = mne_rawEEG.copy()
+    start_MNEfilterTime = time.time()
+    filtBP_eeg = raw_EEG_copy.filter(l_freq=1.0, h_freq=50.0)
+    MNEfilterTime = time.time() - start_MNEfilterTime
+
+    # compute and compare the different MNE ICA algorithm implementations (comp time and SNR of ECG-IC)
+    ##################################################################
+    # TODO Chapter Limitations! : welche obvious param variations noch abdeckbar und sinnvoll?
+    #################################################################
+    # configure the ica objects for fitting
+    ica_dicts = {
+        "picard" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard')},
+        "infomax" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='infomax')},
+        "fastica" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica')}
+
+        # TODO similar to infomax (according to MNE https://mne.tools/stable/generated/mne.preprocessing.ICA.html)
+        #"picard" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=False, extended=False))},
+        #"picard_o" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=True, extended=False))},
+        # TODO similar to extended Infomax (accord to MNE)
+        #"ext_picard" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=False, extended=True))},
+        # TODO similar to FASTICA according to MNE
+        #"ext_picard_o" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=True, extended=True))},
+        #"infomax" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='infomax')},
+        #"ext_infomax" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='infomax', fit_params=dict(extended=True))},
+        #"fastica" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica')},
+        #"fastica_par" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica', fit_params=dict(algorithm='parallel'))},
+        #"fastica_defl" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica', fit_params=dict(algorithm='deflation'))}
+    }
+
+
+    # fit the MNE ICA objects and time the fitting
+    for methodName, ica_dict in ica_dicts.items():
+        
+        # store MNE overhead time (raw obj creation and bandpass filter)
+        ica_dict["MNE_rawObjCreationTime"] = objCreateTime
+        ica_dict["MNE_bandPassFilterTime"] = MNEfilterTime
+
+        # TODO warum hier copy notwendig, passiert fit inplace bzw. verändert die Daten??
+        filtBP_eeg_copy = filtBP_eeg.copy()
+        startTime = time.time()
+        ica_dict["ica"].fit(filtBP_eeg_copy)
+        fitTime = time.time() - startTime
+        ica_dict["icaFitTime"] = fitTime
+
+        # prepare stuff for IC-Select (using ecg_ref)
+        # TODO warum hier copy notwendig, verändert get_sources was an den Daten?
+        mne_rawEEG_copy = mne_rawEEG.copy()
+        sources = ica_dict["ica"].get_sources(mne_rawEEG_copy) # TODO can we also *not* use Raw Obj Instance here?
+        ic_timeseries, times = sources.get_data(return_times=True)
+        ic_timeseries.flatten()
+        ecg_ref_series = (mne_rawECG.get_data()).flatten()
+
+        # TODO Omit This as its unneccessary? ist REF_ECG nach MNE ICA nicht mehr synchronized mit resulting ICs timeseries?
+        # store timeseries of resulting independent components, as well as ECG reference signal
+        ica_dict["ic_timeseries"] = ( ic_timeseries, times)
+        ica_dict["ref_ecg_timeseries"] = ecg_ref_series
+
+    # TODO outsource this to IC-Select Script !?
+    # identify ECG-related IC (using ecg_ref) and calculate resulting metrics
+    for methodName, ica_dict in ica_dicts.items():
+
+        timeseries = (ica_dict["ic_timeseries"])[0]
+        ecg_ref_series = ica_dict["ref_ecg_timeseries"]
+
+        # compute correlation of components with ECG reference to identify ECG-related IC
+        correlations_with_ref = []
+        for component in timeseries:
+            correlations_with_ref.append(np.abs(np.corrcoef(ecg_ref_series, component)[0, 1]))
+            
+        ecg_related_index = correlations_with_ref.index(max(correlations_with_ref))
+        ica_dict["ECG_related_index_from_0"] = ecg_related_index
+
+        # TEST TSTE
+        identify_ecg_related_ic(ecg_ref_series, timeseries)
+
+        ####### TEST TEST TEST ####################################################
+        print("ChoseBest_TEST: ECG_RELATED INDEX")
+        print("Method used: ",  methodName)
+        print("ECG-related Component calulated: ", ecg_related_index, "-th component (starting from 0!)")
+        print("with correlation value of: ", correlations_with_ref[ecg_related_index])
+        #### TEST VISUALLY ########################################################
+        # Plot the sources / results to visually control calculated ECG_component
+        fig, axs = plt.subplots(amountICs + 1, 1, sharex = True)
+        axs[0].plot(ecg_ref_series)
+        axs[0].set_title('clean ecg')
+
+        for idx, component in enumerate(timeseries):
+            axs[idx+1].plot(component)
+            axs[idx+1].set_title(str(idx+1) + "-th component")
+        plt.show()
+        #### TEST VISUALLY ########################################################
+        
+
+        # calulate peak-to-peak SNR of ECG-related component
+        ecg_related_timeseries = timeseries[ecg_related_index]
+        # flip ecg-related component if negatively correlated with ref_ecg
+        ecg_related_timeseries *= calculate_corr_sign(ecg_ref_series, ecg_related_timeseries)
+
+        # TODO OMIT this (brauchen wir das wirklich?)
+        #ica_dict["ECG_related_Timeseries"] = ecg_related_timeseries
+
+        # segment the signal into indivdual heartbeats to calculate pTp SNR / RSSQ SNR
+        epoch = epoch_for_QRS_and_noise(ecg_related_timeseries, ecg_ref_series)
+        #epoch = epoch_for_QRS_and_noise(nk_cleaned_ecg)
+
+        snr_ptp = calculate_snr_PeakToPeak_from_epochs(epoch[0], epoch[1])
+        print("SNR (avg peak-to-peak-amplitude) is ", snr_ptp, "dB")
+        ica_dict["pTp_SNR_dB"] = snr_ptp
+
+        snr_rssq = calc_snr_RSSQ_from_epochs(epoch[0], epoch[1])
+        print("SNR (avg RSSQ) is ", snr_rssq, "dB")
+        ica_dict["rssq_SNR_dB"] = snr_rssq
+    
+    # chose best performing ICA algorithm and return results (based on SNR alone)
+    # TODO calculate metric (optimal time/SNR ratio) to rank algorithm performance
+    maxSNR_pTp = (ica_dicts["picard"])["pTp_SNR_dB"]
+    bestMethod_pTp = "picard"
+    maxSNR_rssq = (ica_dicts["picard"])["rssq_SNR_dB"]
+    bestMethod_rssq = "picard"
+
+    for methodName, ica_dict in ica_dicts.items():
+        if  ica_dict["pTp_SNR_dB"] > maxSNR_pTp:
+            maxSNR_pTp = ica_dict["pTp_SNR_dB"]
+            bestMethod_pTp = methodName
+        if ica_dict["rssq_SNR_dB"] > maxSNR_rssq:
+            maxSNR_rssq = ica_dict["rssq_SNR_dB"]
+            bestMethod_rssq = methodName
+    
+    print("########## TEST_choseBestICA: RESULTS ###################")
+    print("Best method regarding pTp_SNR: ", bestMethod_pTp, "with ", maxSNR_pTp, " dB")
+    print("with ECG_related component being the ", (ica_dicts[bestMethod_pTp])["ECG_related_index_from_0"], "-th component (from 0!)")
+    print("Took in sec: ", (ica_dicts[bestMethod_pTp])["fitTime"], "with amount iterations: ", (ica_dicts[bestMethod_pTp])["ica"].n_iter_)
+    print("###")
+    print("Best method regarding rssq_SNR: ", bestMethod_rssq, "with ", maxSNR_rssq, " dB")
+    print("with ECG_related component being the ", (ica_dicts[bestMethod_rssq])["ECG_related_index_from_0"], "-th component (from 0!)")
+    print("Took in sec: ", (ica_dicts[bestMethod_rssq])["fitTime"], "with amount iterations: ", (ica_dicts[bestMethod_rssq])["ica"].n_iter_)
+
+    return (bestMethod_pTp, ica_dicts)
+
+
+def calulate_ICA_metrics_with_ecg_ref(ecg_ref_signal, ecg_related_component):
+
+    # segment the signal into indivdual heartbeats to calculate pTp SNR / RSSQ SNR
+    epoch = epoch_for_QRS_and_noise(ecg_related_component, ecg_ref_signal)
+
+    snr_ptp = calculate_snr_PeakToPeak_from_epochs(epoch[0], epoch[1])
+    print("SNR (avg peak-to-peak-amplitude) is ", snr_ptp, "dB")
+
+    snr_rssq = calc_snr_RSSQ_from_epochs(epoch[0], epoch[1])
+    print("SNR (avg RSSQ) is ", snr_rssq, "dB")
+    
+    return (snr_ptp, snr_rssq)
 
 
 
+# TODO auslagern in IC-Select Modul
+def identify_ecg_related_ic(ecg_ref_series, ic_timeseries):
 
+    # compute correlation of components with ECG reference to identify ECG-related IC
+    correlations_with_ref = []
+    for ind_component in ic_timeseries:
+        correlations_with_ref.append(np.abs(np.corrcoef(ecg_ref_series, ind_component)[0, 1])) 
+    ecg_related_index = correlations_with_ref.index(max(correlations_with_ref))
+
+    ecg_related_timeseries = ic_timeseries[ecg_related_index]
+    correlation_abs = correlations_with_ref[ecg_related_index]
+
+    "TEST PURPOSE ONLY"
+    ref_signal = ecg_ref_series
+    noisy_signal = ecg_related_timeseries
+    mittelwert = (np.max(ref_signal) + np.min(ref_signal)) / 2
+    normalized_ref = ref_signal - mittelwert
+    normalized_ref = normalized_ref / np.max(normalized_ref)
+
+    mittelwert = (np.max(noisy_signal) + np.min(noisy_signal)) / 2
+    normalized_noisy = noisy_signal - mittelwert
+    normalized_noisy = normalized_noisy / np.max(normalized_noisy) 
+
+    similarity = normalized_noisy * normalized_ref
+    alternative_corr = np.mean(similarity)
+
+    # assert correlation_abs == alternative_corr, "Correlation_ABS is " + correlation_abs + " while sign(mean(sim)) is " + np.sign(np.mean(similarity))
+
+
+    # if correlation negative, flip ecg_related_timeseries
+    #ecg_related_timeseries *= calculate_corr_sign(ecg_ref_series, ecg_related_timeseries)
+
+    return (ecg_related_timeseries, correlation_abs)
+
+
+def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amount, max_iterations):
+    """ TODO methode soll ecg_ref als numpy array und eeg_signls als 2d np-array nehmen und numpa array mit ECG-related ICS raushauen
+    sowie nparray?? oder list whatever mit ica_metric_dicts raushauen
+    """
+    
+    
+    # TODO data is assumed to already be preprocessed appropriately 
+    # TODO : 
+    # apply bandpass filter(?) on EEG data (before ICA) to prevent slow downward(?) shift (?)
+    # If you intend to fit ICA on Epochs, it is recommended to high-pass filter, 
+    # but not baseline correct the data for good ICA performance. A warning will be emitted otherwise.
+    # TODO warum hier copy nötig? verändert MNE filter was an den daten (inplace?)???
+    
+
+    # create mne.io.Raw Objects from input eeg data to perform MNE ICA on
+    start_rawObj_create_time = time.time()
+    mne_rawEEG = createObjectMNE('eeg', eeg_signals)
+    rawObj_create_time = time.time() - start_rawObj_create_time
+
+    """FOR TEST ONLY """
+    mne_object_length = ((((createObjectMNE('ecg', ecg_ref_signal.reshape(1, ecg_ref_signal.size))).get_data()).flatten())).size
+    assert ecg_ref_signal.size == mne_object_length, "MNE alters ECG timeseries length"
+    # if assert error then we have to use mne raw also on ECG timeseries
+
+    ######################################################################
+    # compute and compare the different MNE ICA algorithm implementations
+    ######################################################################
+    # TODO Chapter Limitations! : welche obvious param variations noch abdeckbar und sinnvoll?
+    
+    # setup np.array of ica dicts that store the metrics
+    # TODO what about random_state variabel??
+    ica_dicts = np.array([
+        {"method_id" : "picard", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='picard')},
+        {"method_id" : "infomax", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='infomax')},
+        {"method_id" : "fastica", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='fastica')}
+
+        # TODO similar to infomax (according to MNE https://mne.tools/stable/generated/mne.preprocessing.ICA.html)
+        #"picard" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=False, extended=False))},
+        #"picard_o" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=True, extended=False))},
+        # TODO similar to extended Infomax (accord to MNE)
+        #"ext_picard" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=False, extended=True))},
+        # TODO similar to FASTICA according to MNE
+        #"ext_picard_o" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=True, extended=True))},
+        #"infomax" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='infomax')},
+        #"ext_infomax" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='infomax', fit_params=dict(extended=True))},
+        #"fastica" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica')},
+        #"fastica_par" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica', fit_params=dict(algorithm='parallel'))},
+        #"fastica_defl" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica', fit_params=dict(algorithm='deflation'))}
+        ])
+
+    # setup list to store the ecg_related timeseries for each MNE ICA variant (convert to np.array later on)
+    ecg_related_ics = []
+
+    # fit the MNE ica objects and time the fitting
+    for ica_dict in ica_dicts:
+
+        # TODO ist hier copy wirklich notwendig? verändert MNE ICA fitting die original daten???
+        eeg_fit_copy = mne_rawEEG.copy()
+
+        start_fit_time = time.time()
+        ica_dict["ica"].fit(eeg_fit_copy)
+        fit_time = time.time() - start_fit_time
+
+        # store fitting time and Raw Obj creation time
+        ica_dict["time_fit"] = fit_time
+        ica_dict["rawObj_create_time"] = rawObj_create_time
+
+        # store the resulting independent components
+        # TODO Warum hier copy nötig?? verändert get_sources die Daten???
+        sources = ica_dict["ica"].get_sources(mne_rawEEG.copy()) 
+        ic_timeseries, times = sources.get_data(return_times=True)
+        ic_timeseries.flatten()
+        """FOR TEST ONLY """
+        assert ic_timeseries[0].size == ecg_ref_signal.size, "MNE Sources have not same sample length as input array anymore !!!"
+        
+        # TODO ist das wirklich nötig?
+        ica_dict["independent_components"] = ic_timeseries
+
+        # TODO mache IC-Select: rufe hier IC-Select-Funktion auf?? -> auslagern in IC-Select Modul
+        ecg_related_component, corr_value = identify_ecg_related_ic(ecg_ref_signal, ic_timeseries)
+        ecg_related_ics.append(ecg_related_component)
+
+        """ For TEST purposes only ! """
+        # compute correlation of components with ECG reference to identify ECG-related IC
+        correlations_with_ref = []
+        for component in ic_timeseries:
+            correlations_with_ref.append(np.abs(np.corrcoef(ecg_ref_signal, component)[0, 1]))  
+        ecg_related_index = correlations_with_ref.index(max(correlations_with_ref))
+        test_corr = np.corrcoef(ecg_related_component, ic_timeseries[ecg_related_index])[0, 1]
+        #assert test_corr == 1, "ECG_RELATED INDEX TEST FAILED !"
+
+        print("IC_SELECT TEST: ECG_RELATED INDEX")
+        print("Method used: ",  ica_dict["method_id"])
+        print("ECG-related Component calulated: ", ecg_related_index, "-th component (starting from 0!)")
+        print("with correlation value of: ", corr_value)
+        #### TEST VISUALLY ########################################################
+        # Plot the sources / results to visually control calculated ECG_component
+        fig, axs = plt.subplots(component_amount + 1, 1, sharex = True)
+        axs[0].plot(ecg_ref_signal)
+        axs[0].set_title('ECG Reference Signal')
+
+        for idx, component in enumerate(ic_timeseries):
+            axs[idx+1].plot(component)
+            axs[idx+1].set_title(str(idx) + "-th independent component")
+        plt.show()
+        #### TEST VISUALLY ########################################################
+
+        # TODO flip component if negatively correlated with ref
+        # TODO Limitation wie geht das ohne ECG Ref signal (in RT pipeline)????
+        # flip ecg-related component if negatively correlated with ref_ecg
+        flip_sign = calculate_corr_sign(ecg_ref_signal, ecg_related_component)
+        ecg_related_component *= calculate_corr_sign(ecg_ref_signal, ecg_related_component)
+
+        """ For TEST Purpose ONLY """
+        fig, axs = plt.subplots(2, 1, sharex = True)
+        axs[0].plot(ecg_ref_signal)
+        axs[0].set_title('ECG Reference Signal')
+        axs[1].plot(ecg_related_component)
+        axs[1].set_title('Flipped ECG-related IC')
+        plt.show()
+
+
+        # compute and store ICA quality metrics (using ECG reference signal for epochs centered around actual QRS complexes)
+        snr_ptp, snr_rssq = calulate_ICA_metrics_with_ecg_ref(ecg_ref_signal, ecg_related_component)
+        ica_dict["snr_ptp"] = snr_ptp
+        ica_dict["snr_rssq"] = snr_rssq
+
+# TODO REFACTOR THIS
 def main():
 
     global componentAmountConsidered
     
     ########## load and select sample / window from test recordings (eeg and ecg channels seperately)
+    # load offline (brainflow) recording sessions 
+    dataRecordings = offD.get_offline_recording_sessions()
 
-    # initiate test recording data objects as list
-    dataRecordings = []
-    filepaths = offD.getFilepaths()
-    '''
-    for path in filepaths:
-        dataRecordings.append(RecordingData(path))
-    '''
-    dataRecordings.append(offD.RecordingData(filepaths[1]))
+
     ########################################
     
 
     ### perform offline ICA Analysis on loaded and (pre-) filtered (BrainFlow) EEG data of Test Recording No.1
     startTime_prepro = time.time()
-    rawEEG = createObjectMNE('eeg', prepro.preprocessData(dataRecordings[0].getEEG()))
-    rawECG = createObjectMNE('ecg', prepro.preprocessData(dataRecordings[0].getECG()))
+    preproEEG = prepro.preprocess_data(dataRecordings[0].get_EEG_data())
+    preproECG = prepro.preprocess_data(dataRecordings[0].get_ECG_data())
     endTime_prepro = time.time() - startTime_prepro
-    
+
+    startTime_objCreate = time.time()
+    rawEEG = createObjectMNE('eeg', preproEEG)
+    rawECG = createObjectMNE('ecg', preproECG)
+    endTime_objCreate = time.time() - startTime_objCreate
 
     # Here we'll crop to 'tmax' seconds 
     # Note that the new tmin is assumed to be t=0 for all subsequently called functions
@@ -401,7 +740,9 @@ def main():
     #rawEEG.crop(tmin = 630.0, tmax=690.0)
     #rawECG.crop(tmin = 630.0, tmax=690.0)
 
-    choseBestICA(rawEEG, rawECG, componentAmountConsidered, "auto")
+    #choseBestICA(rawEEG, rawECG, componentAmountConsidered, "auto")
+
+    #evaluate_all_ICA_variants(dataRecordings[0].get_EEG_data(), dataRecordings[0].get_ECG_data(), amountICs= componentAmountConsidered, maxIter = "auto")
 
     startTime_filter = time.time()
     # TODO Check if this is already done by BrainFlow Filtering
@@ -410,8 +751,10 @@ def main():
     filt_rawEEG = rawEEG.copy().filter(l_freq=1.0, h_freq=50.0)
     endTime_filter = time.time() - startTime_filter
 
-    print("Preprocessing (BrainFlow Filter + uV-V Conversion + RawObj Creation + additional MNE_filter) took (in sec): ", endTime_prepro + endTime_filter)
-
+    print("Preprocessing (BrainFlow Filter + uV-V Conversion + RawObj Creation + additional MNE_filter)")
+    print("Preprocessing (BrainFlow Filter + uV conversion) took (in sec): ", endTime_prepro)
+    print("MNE RawObj Creation took (in sec) ", endTime_objCreate)
+    print("Additional MNE Bandpass Filter took (in sec): ", endTime_filter)
 
     # apply ICA on the filtered raw EEG data
 
@@ -487,10 +830,20 @@ def main():
     #print("SNR (IDUN) for 1 comp:", calculate_snr_Idun(components[i]))
     print("##########################")
 
+    # TEST if simple np.corrcoef is sufficient
+    correlations_numpy = []
+    for curr_component in components:
+            correlations_numpy.append(np.abs(np.corrcoef(new_ecg, curr_component)[0, 1]))
+    
+    assert ecg_related_index == correlations_numpy.index(max(correlations_numpy))
+
+    identify_ecg_related_ic(new_ecg, components[ecg_related_index])
+  
+
 
     
     # plot the extracted ecg related component
-    fig, axs = plt.subplots(componentAmountConsidered + 1, 1)
+    fig, axs = plt.subplots(componentAmountConsidered + 1, 1, sharex = True)
     axs[0].plot(new_ecg)
     axs[0].set_title('clean ecg')
 
