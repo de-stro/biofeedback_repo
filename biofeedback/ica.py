@@ -139,40 +139,76 @@ def epoch_for_QRS_and_noise(noisy_signal, reference_signal = None):
         noisy_signals, waves = nk.ecg_delineate(noisy_signal, noisy_peaks_info["ECG_R_Peaks"], sampling_rate = sampling_rate,
                                                   method = 'dwt', show = False, show_type = "bounds_R")
         
-    onsets_R_list = waves["ECG_R_Onsets"]
-    offsets_R_list = waves["ECG_R_Offsets"]
+    onsets_R_list = np.array(waves["ECG_R_Onsets"])
+    offsets_R_list = np.array(waves["ECG_R_Offsets"])
+    """TEST onsets und offset immer gleich lang trotz evtl. NaN padding und NaN padding nur max ein element
+    am anfang und/oder am ende"""
+    # TESTE DIE INVARIANTEN UND PADDING PRÄMISSEN
+    assert onsets_R_list.size == offsets_R_list.size
+    assert np.count_nonzero(np.isnan(onsets_R_list)) <= 2
+    assert np.count_nonzero(np.isnan(offsets_R_list)) <= 2
+    
+    if np.isnan(onsets_R_list[0]) and (not np.isnan(offsets_R_list[0])):
+        assert offsets_R_list[0] < onsets_R_list[1]
+    if np.isnan(offsets_R_list[0]) and (not np.isnan(onsets_R_list[0])):
+        assert onsets_R_list[0] < offsets_R_list[1]
+    
+    if np.isnan(onsets_R_list[-1]) and (not np.isnan(offsets_R_list[-1])):
+        assert offsets_R_list[-1] > onsets_R_list[1]
+    if np.isnan(offsets_R_list[-1]) and (not np.isnan(onsets_R_list[-1])):
+        assert onsets_R_list[0] < offsets_R_list[1]
+    
+    # prune onsets and offsets to remove NaN entries introduced by neurokit2
+    onsets_R_list, offsets_R_list = utility.prune_onsets_and_offsets(onsets_R_list, offsets_R_list)
+    
     # TODO Delete: remove NaN padding introduced by neurokit2 ecg_delineation
     #onsets_R_list = utility.remove_NaN_padding(onsets_R_list)
     #offsets_R_list = utility.remove_NaN_padding(offsets_R_list)
 
     # ensure that epochs beginn with first R_Offset (hence, a noise_segment) and end with last R_Offset,
     # therefore, last detected QRS complex is included, while first QRS complex might be omitted!
+    """
     if onsets_R_list[0] < offsets_R_list[0]:
         onsets_R_list = onsets_R_list[1:]
     if onsets_R_list[-1] > offsets_R_list[-1]:
         onsets_R_list = onsets_R_list[:-1]
+    
+    # prune offset and onsets before comparision to remove NaN padding introduced by neurokit2 (otherwise always False)
+    
+    pruned_onsets = onsets_R_list[~np.isnan(onsets_R_list)]
+    pruned_offsets = offsets_R_list[~np.isnan(offsets_R_list)]
+
+    if pruned_onsets[0] < pruned_offsets[0]:
+        onsets_R_list = onsets_R_list[1:]
+    if pruned_onsets[-1] > pruned_offsets[-1]:
+        onsets_R_list = onsets_R_list[:-1]
+
+    """
+
     # now size offsets_R_list must be equal or 1 greater than size onsets_R_list!
     #print("TEST:: Size of onset_R_list ", len(onsets_R_list), " and of offset_R_list: ", len(offsets_R_list))
     #print("TEST:: OFFSET_R_LIST MUST BE EQUAL OR 1 GREATER THAN THE SIZE OF ONSET_R_LIST !!")
-
-    # calculate duration between R_offset and R_onset in seconds (omit last R_Offset for noise epochs)
-    noise_epochs_duration = np.array(onsets_R_list) - np.array(offsets_R_list[:-1])
+    print("$§$§$§$§$§$§$§$§$§$§$§$$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$§$")
+    # calculate duration between R_offset and R_onset in seconds (omit last R_Offset for noise epochs) TODO WHY?!? 
+    # but if onsets starts with NaN, also prune onsets (to truly calculate noise epochs duration)
+    # TODO DOCUMENT Segmentation Procedure! visuell in documentation!
+    noise_epochs_duration = onsets_R_list - (offsets_R_list[:-1])
     noise_epochs_duration = noise_epochs_duration / sampling_rate
 
     # calculate duration between R_onset and R_offset in seconds (omit first R_Offset for QRS epochs)
-    qrs_epochs_duration = np.array(offsets_R_list[1:]) - np.array(onsets_R_list)
+    qrs_epochs_duration = (offsets_R_list[1:]) - onsets_R_list
     qrs_epochs_duration = qrs_epochs_duration / sampling_rate
     #print("TEST:: Length of epochs_duration arrays must be the same!!!")
     #print("TEST::Length of qrs_epochs_duration: ", qrs_epochs_duration.size, " and of noise_epochs_duration: ", noise_epochs_duration.size)
-    ''' TEST
-    print("mean duration for QRS complex (in sec): ", np.mean(epochs_duration))
-    print("duration of 10th QRS complex (in sec): ", ((ref_waves["ECG_R_Offsets"])[9] - (ref_waves["ECG_R_Onsets"])[9]) / sampling_rate)
-    '''
+    ''' TEST'''
+    print("mean duration for QRS complex (in sec): ", np.mean(qrs_epochs_duration))
+    print("duration of 10th QRS complex (in sec): ", ((waves["ECG_R_Offsets"])[9] - (waves["ECG_R_Onsets"])[9]) / sampling_rate)
+    
     # remove NaN padding introduced by neurokit2 ecg_delineation
-    noise_epochs_duration = utility.remove_NaN_padding(noise_epochs_duration)
-    qrs_epochs_duration = utility.remove_NaN_padding(qrs_epochs_duration)
-    onsets_R_list = utility.remove_NaN_padding(onsets_R_list)
-    offsets_R_list = utility.remove_NaN_padding(offsets_R_list)
+    #noise_epochs_duration = utility.remove_NaN_padding(noise_epochs_duration)
+    #qrs_epochs_duration = utility.remove_NaN_padding(qrs_epochs_duration)
+    #onsets_R_list = utility.remove_NaN_padding(onsets_R_list)
+    #offsets_R_list = utility.remove_NaN_padding(offsets_R_list)
 
     # TODO FIX BUG with new neurokit2 version (0.2.7 instead of 0.2.3) regarding conversion float NaN to integer
     # BUG with 0.2.3 version another bug occurs earlier at LOC::116 from neurokit2 signal_interpolate ("operands could not be broadcast together with shapes (69,) (15001,)")
@@ -184,7 +220,8 @@ def epoch_for_QRS_and_noise(noisy_signal, reference_signal = None):
     noise_epochs = nk.epochs_create(noisy_signal, events = offsets_R_list, sampling_rate = sampling_rate, epochs_start = 0, 
                                 epochs_end = noise_epochs_duration.tolist(), event_labels = None, event_conditions = None, baseline_correction = False)
         
-    ''' TEST
+    """ TEST 
+    # TODO Plotte hier das ganze Signal (QRS + dazugehöriges Noise Segment), drunter QRS und Noise einzel
     # Iterate through epoch data
     i = 0
     for qrs_epoch in qrs_epochs.values():
@@ -201,7 +238,7 @@ def epoch_for_QRS_and_noise(noisy_signal, reference_signal = None):
         i = i + 1
 
     plt.show()
-    '''
+    """
     return (qrs_epochs, noise_epochs)
     
 def epoch_peak_to_peak_amplitude(epoch):
@@ -572,12 +609,20 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
     # create mne.io.Raw Objects from input eeg data to perform MNE ICA on
     start_rawObj_create_time = time.time()
     mne_rawEEG = createObjectMNE('eeg', eeg_signals)
+    mne_rawECG = createObjectMNE('ecg', ecg_ref_signal.reshape(1, ecg_ref_signal.size))
     rawObj_create_time = time.time() - start_rawObj_create_time
+
+    # highpass filter the data using MNE filter # TODO also for ECG needed ie. to keep synchrony??
+    start_mne_filter_time = time.time()
+    mne_filtEEG = mne_rawEEG.copy().filter(l_freq=1.0, h_freq=None)
+    # mne_filtECG = mne_rawECG.copy().filter(l_freq=1.0, h_freq=None)
+    mne_filter_time = time.time() - start_mne_filter_time
 
     """FOR TEST ONLY """
     mne_object_length = ((((createObjectMNE('ecg', ecg_ref_signal.reshape(1, ecg_ref_signal.size))).get_data()).flatten())).size
     assert ecg_ref_signal.size == mne_object_length, "MNE alters ECG timeseries length"
-    # if assert error then we have to use mne raw also on ECG timeseries
+    # TODO if assert error then we have to use mne raw also on ECG timeseries
+    # ecg_ref_signal = mne_filtECG.get_data().flatten()
 
     ######################################################################
     # compute and compare the different MNE ICA algorithm implementations
@@ -586,7 +631,7 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
     
     # setup np.array of ica dicts that store the metrics
     # TODO what about random_state variabel??
-    ica_dicts = np.array([
+    ica_dicts = [
         {"method_id" : "picard", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='picard')},
         {"method_id" : "infomax", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='infomax')},
         {"method_id" : "fastica", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='fastica')}
@@ -603,24 +648,32 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         #"fastica" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica')},
         #"fastica_par" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica', fit_params=dict(algorithm='parallel'))},
         #"fastica_defl" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica', fit_params=dict(algorithm='deflation'))}
-        ])
+        ]
 
-    # setup list to store the ecg_related timeseries for each MNE ICA variant (convert to np.array later on)
+    # setup list to store the ecg_related timeseries for each MNE ICA variant
     ecg_related_ics = []
+
+    # setup lists (convert to np.array before return) for ica metrics (numerical values)
+    segment_computation_times_sec = []
+    segment_pTp_snrs_dB = []
+    segment_rssq_snrs_dB = []
 
     # fit the MNE ica objects and time the fitting
     for ica_dict in ica_dicts:
 
         # TODO ist hier copy wirklich notwendig? verändert MNE ICA fitting die original daten???
-        eeg_fit_copy = mne_rawEEG.copy()
+        eeg_fit_copy = mne_filtEEG.copy() #mne_rawEEG.copy()
 
         start_fit_time = time.time()
         ica_dict["ica"].fit(eeg_fit_copy)
         fit_time = time.time() - start_fit_time
 
-        # store fitting time and Raw Obj creation time
+        # store fitting time and Raw Obj creation time and MNE Filtering time
         ica_dict["time_fit"] = fit_time
         ica_dict["rawObj_create_time"] = rawObj_create_time
+        ica_dict["mne_filter_time"] = mne_filter_time
+        
+        segment_computation_times_sec.append(fit_time + rawObj_create_time + mne_filter_time)
 
         # store the resulting independent components
         # TODO Warum hier copy nötig?? verändert get_sources die Daten???
@@ -652,8 +705,12 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         snr_ptp, snr_rssq = calulate_ICA_metrics_with_ecg_ref(ecg_ref_signal, ecg_related_component)
         ica_dict["snr_ptp"] = snr_ptp
         ica_dict["snr_rssq"] = snr_rssq
+        
+        segment_pTp_snrs_dB.append(snr_ptp)
+        segment_rssq_snrs_dB.append(snr_rssq)
+
     
-    return
+    return (ica_dicts, ecg_related_ics, np.array(segment_computation_times_sec), np.array(segment_pTp_snrs_dB), np.array(segment_rssq_snrs_dB))
 
 # TODO REFACTOR THIS
 def main():
