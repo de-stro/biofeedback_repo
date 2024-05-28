@@ -149,7 +149,8 @@ class RecordingSession:
 
         # preprocess data (ECG and EEG channels only) first
         data_only = self.loaded_data[channels_of_data_only, :]
-        # apply cutoff after preprocessing (to get rid of irregularities at very beginning of the processed signal)
+        # TODO ein und ausschwingen des filters rausschneiden
+        # TODO apply cutoff after preprocessing (to get rid of irregularities at very beginning of the processed signal)
         prepro_data = np.array(prepro.preprocess_data(data_only)[:, session_begin_cutoff:-session_end_cutoff])
 
         # append channels for package numbers and timestamp values 

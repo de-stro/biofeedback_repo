@@ -34,6 +34,8 @@ def preprocess_data(data_2D):
         # TODO WELCHES FILTERING HIER SINNVOLL FÜR ANWENDUNGSFALL (ICA for ECG from EEG)
         # (+ Quellen!!)
         DataFilter.detrend(data_2D[channel], DetrendOperations.CONSTANT.value)
+        # TODO ICA requires data to be highpass filtered (cutoff at 1.0 Hz laut MNE) -> alternativ über MNE filtern?
+        # DataFilter.perform_highpass(data_2D[channel], sampling_rate_cyton, 1.0, 2, FilterTypes.BUTTERWORTH.value, 0)
         DataFilter.perform_bandpass(data_2D[channel], sampling_rate_cyton, 3.0, 45.0, 2, FilterTypes.BUTTERWORTH.value, 0)
         DataFilter.perform_bandstop(data_2D[channel], sampling_rate_cyton, 48.0, 52.0, 2, FilterTypes.BUTTERWORTH.value, 0)
         DataFilter.perform_bandstop(data_2D[channel], sampling_rate_cyton, 58.0, 62.0, 2, FilterTypes.BUTTERWORTH.value, 0)
