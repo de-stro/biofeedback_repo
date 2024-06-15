@@ -500,7 +500,7 @@ def evaluate_all_ICA_variants(eeg_data, ecg_ref, amountICs:int, maxIter:int):
         ica_dict["ECG_related_index_from_0"] = ecg_related_index
 
         # TEST TSTE
-        identify_ecg_related_ic(ecg_ref_series, timeseries)
+        #identify_ecg_related_ic(ecg_ref_series, timeseries)
 
         ####### TEST TEST TEST ####################################################
         print("ChoseBest_TEST: ECG_RELATED INDEX")
@@ -843,7 +843,7 @@ def main():
     
     assert ecg_related_index == correlations_numpy.index(max(correlations_numpy))
 
-    identify_ecg_related_ic(new_ecg, components[ecg_related_index])
+    #identify_ecg_related_ic(new_ecg, components[ecg_related_index])
   
 
 

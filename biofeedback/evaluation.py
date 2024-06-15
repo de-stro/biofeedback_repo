@@ -72,6 +72,7 @@ def main():
 
     # allocate 3D (4D) data matrices to store results of all recording sessions
     # TODO make it numpy arrays
+    # combined performance evaluation
     total_ica_matrix = []
     total_ic_select_matrix = []
     total_peak_detect_matrix = []
@@ -86,8 +87,14 @@ def main():
         session_peak_detect_matrix = []
 
         # apply ICA and store metrics for each segment of the recording session
-        for segment in segments:
+        for idx, segment in enumerate(segments):
 
+            """ TEST PURPOSE for shorter ICA eval um peak_detect zu debuggen
+            ##################
+            if idx != 0: 
+                break
+            ##################
+            """
             ecg_signal = segment[2]
             eeg_signals = segment[3:]
             ica_dicts, ecg_related_ics, comp_times, pTP_snrs, rssq_snrs = ica.evaluate_all_MNE_ICA_on_segment(ecg_signal, eeg_signals, component_amount=7, max_iterations=50)
@@ -97,15 +104,22 @@ def main():
             session_ic_select_matrix.append(ecg_related_ics)
 
         # apply peak detection and store metrics for each segment of the recording session
-        for segment in segments:
+        for idxS, segment in enumerate(segments):
 
+            """TEST PURPOSE for shorter PEAK DETEC Eval um peak_detect zu debuggen
+            ##################
+            if idxS != 0: 
+                break
+            ##################
+            """
             ecg_signal = segment[2]
 
             # set up 2D matrix to store peak detection metrics of the segment 
             segment_peak_detect_matrix = []
 
             # apply peak detection and store metrics for each ECG-related IC (ie. executed ICA-Variant) of the segment
-            for ecg_component in ecg_related_ics:
+            for idxC, ecg_component in enumerate(ecg_related_ics):
+                print("TEST EVAL of ", idxC, " component! In the ", idxS, "-th Segment")
                 
                 peak_detect_dicts = peak_detect.evaluate_all_peak_detect_methods(ecg_component, ecg_signal)
                 
@@ -118,7 +132,7 @@ def main():
 
     evaluation_time_naive = time.time() - start_evaluation_time_naive
 
-    print("§§§ Evaluation for all recordings took in total: §§§")
+    print("§§§TEST§§§ Evaluation for all recordings took in total: §§§")
     print(segmentation_time, " (segmentation time in sec)")
     print(evaluation_time_naive, " (evaluation time in sec)")
     # preprocess data appropriately for ICA

@@ -99,6 +99,9 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
         min_distance = np.min(abs_distances_to_ref_peak)
         sample_displacements.append(min_distance)
 
+    # assert that ref peaks amount is equal to true hits + true misses + displacements
+    assert np.count_nonzero(ref_peaks) == (true_hits + true_misses + len(sample_displacements))
+
     # convert sample displacements into temporal jitter values in ms 
     millis_jitter_values = list(map(lambda sample_dist: sample_dist / sampling_rate, sample_displacements))
 
@@ -109,6 +112,8 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
     jitter_score = 1 / (1 + (avg_jitter_millis) / 12)
 
     # calulate the F_1 score over all segments TODO according to BERN PORR PREPRINT
+    assert (true_hits + true_false_positives + true_misses) != 0
+    
     try:
         f_1_score = (2 * true_hits) / ((2 * true_hits) + true_false_positives + true_misses)
     except:
@@ -119,7 +124,12 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
 
     # calculate the JF-score according to TODO PAPER BERN PORR 
     jf_score = f_1_score * jitter_score * 100
+    
 
+    """ TODO Omit this score
+    # NOTE Da sensitivity nur true hits und misses berücksichtigt,
+    # es aber vorkommen kann das beides null ist (da alles peak displacements sind)
+    # und dadurch divide by zero ERRROR (weil wir mehr als nur true misses betrachten)
     # calculate further metrics 
     # sensitivity here regards only (possibly displaced) hits and 
     # misses (with dynamic tolerance window of half distance to next beat)
@@ -130,6 +140,7 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
         error_msg = traceback.format_exc()
         print("Calculating Sensitivity, an Error occured!")
         print(error_msg)
+    """
 
     results_dict = {
         "true_positives": true_hits,
@@ -142,7 +153,7 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
         "jitter_score": jitter_score,
         "f_1_score": f_1_score,
         "jf_score": jf_score,
-        "sensitivity": sensitivity
+        #"sensitivity": sensitivity
     }
 
     return results_dict
@@ -155,46 +166,57 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
     # first peak correction by neurokit
     neurokit_peak_correction = True
     # afterwards naive peak sample value check / correction
-    naive_peak_sample_correction = True
+    naive_peak_sample_correction = False
 
     ################ Parameterize and Profile NeuroKit2. Peak-Detection Algorithms ################################
     # setup dicts for each neurokit peak-detection algorithm (include version with cleaned input if provided by NeuroKit2)
     # TODO (w/ and w/o cleaned data, if applicable) -> macht das Sinn, das jeweils mit und ohne?
     # TODO Parameterize the methods independently??? -> geht über Scope hinaus
     # TODO Untersuche Neurokit Fehler bei Benutzung mancher Methoden
-    peakDetect_dicts = {
-        "dirty_neurokit" : {"method": "neurokit", "clean": False},
-        "clean_neurokit" : {"method": "neurokit", "clean": True},
-        "dirty_pantompkins1985" : {"method": "pantompkins1985", "clean": False},
-        "clean_pantompkins1985" : {"method": "pantompkins1985", "clean": True},
-        "dirty_hamilton2002" : {"method": "hamilton2002", "clean": False},
-        "clean_hamilton2002" : {"method": "hamilton2002", "clean": True},
-        # TODO gamboa2008 Fehler untersuchen (index out of bounds)
-        #"dirty_gamboa2008" : {"method": "gamboa2008", "clean": False},
-        #"clean_gamboa2008" : {"method": "gamboa2008", "clean": True},
-        "dirty_elgendi2010" : {"method": "elgendi2010", "clean": False},
-        "clean_elgendi2010" : {"method": "elgendi2010", "clean": True},
-        "dirty_engzeemod2012" : {"method": "engzeemod2012", "clean": False},
-        "clean_engzeemod2012" :  {"method": "engzeemod2012", "clean": True},
-        "dirty_kalidas2017" : {"method": "kalidas2017", "clean": False},
+    peakDetect_dicts = [
+        {"method_id": "dirty_neurokit", "method": "neurokit", "clean": False},
+        {"method_id": "clean_neurokit", "method": "neurokit", "clean": True},
+        {"method_id": "dirty_pantompkins1985", "method": "pantompkins1985", "clean": False},
+        {"method_id": "clean_pantompkins1985", "method": "pantompkins1985", "clean": True},
+        {"method_id": "dirty_hamilton2002", "method": "hamilton2002", "clean": False},
+        {"method_id": "clean_hamilton2002", "method": "hamilton2002", "clean": True},
+        # TODO BUG gamboa2008 Fehler untersuchen (index out of bounds) 
+        # wirft aktuell keine Fehler -> TODO NOCH AKTUELL??
+        {"method_id": "dirty_gamboa2008", "method": "gamboa2008", "clean": False},
+        # BUG Clean gamboa2008 wirft assertion error in calc_metrics_with_ref weil REF_SEG
+        # nicht single peak contained
+        #{"method_id": "clean_gamboa2008", "method": "gamboa2008", "clean": True},
+        {"method_id": "dirty_elgendi2010", "method": "elgendi2010", "clean": False},
+        {"method_id": "clean_elgendi2010", "method": "elgendi2010", "clean": True},
+        {"method_id": "dirty_engzeemod2012", "method": "engzeemod2012", "clean": False},
+        {"method_id": "clean_engzeemod2012" , "method": "engzeemod2012", "clean": True},
+        {"method_id": "dirty_kalidas2017", "method": "kalidas2017", "clean": False},
         # TODO Remark: Only dummy for cleaning method of kalidas2017 provided by neurokit2, 
         # i.e not fully implemented yet (as of 16.05.2024)
-        "clean_kalidas2017" : {"method": "kalidas2017", "clean": True},
+        {"method_id": "clean_kalidas2017", "method": "kalidas2017", "clean": True},
         # TODO emrich2023 Fehler untersuchen (not implemented bzw. "vg" method (nur für clean?))
-        # TODO UPDATE THE NEUROKIT IMPORT
-        #"dirty_emrich2023" :  {"method": "emrich2023", "clean": False},
-        #"clean_emrich2023" : {"method": "emrich2023", "clean": True},
+        # -> UPDATE THE NEUROKIT IMPORT ??
+        # BUG DIRTY EMRICH wirft Fehler
+        # "NeuroKit error: ecg_findpeaks(): 'emrich2023' not implemented"
+        #{"method_id": "dirty_emrich2023" , "method": "emrich2023", "clean": False},
+        # BUG Clean EMRICH wirft Fehler 
+        # "NeuroKit error: ecg_clean(): 'method' should be one of 'neurokit', 'biosppy', 
+        # 'pantompkins1985', 'hamilton2002', 'elgendi2010', 'engzeemod2012', 'templateconvolution'."
+        # {"method_id": "clean_emrich2023", "method": "emrich2023", "clean": True},
 
         # detection methods with no cleaning method provided yet (by neurokit2) or 
         # not forseen at all (by implementation authors)
-        "zong2003" : {"method": "zong2003", "clean": False},
-        "martinez2004" : {"method": "martinez2004", "clean": False},
-        "christov2004" : {"method": "christov2004", "clean": False},
-        "nabian2018" :  {"method": "nabian2018", "clean": False},
-        "rodrigues2021" : {"method": "rodrigues2021", "clean": False},
-        "manikandan2012" : {"method": "manikandan2012", "clean": False},
-        "promac" : {"method": "promac", "clean": False}
-    }
+        {"method_id": "zong2003", "method": "zong2003", "clean": False},
+        # BUG PERSISTENT: Martinez2004 findet keine Beats in REF_SIGNAL (mit nk.ecg_peaks)
+        # damit enthält ref_results["ECG_R_PEAKS"] nur Nullen und nk.ecg_peaks und
+        # calc_metrics_with_ref werfen Fehler!!
+        #{"method_id": "martinez2004", "method": "martinez2004", "clean": False},
+        {"method_id": "christov2004", "method": "christov2004", "clean": False},
+        {"method_id": "nabian2018" , "method": "nabian2018", "clean": False},
+        {"method_id": "rodrigues2021", "method": "rodrigues2021", "clean": False},
+        {"method_id": "manikandan2012", "method": "manikandan2012", "clean": False},
+        {"method_id": "promac", "method": "promac", "clean": False}
+    ]
 
     # execute and profile neurokit peak-detection algorithms for REF ECG signal as ground truth
 
@@ -208,17 +230,17 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
     # further:      additionally perform "naive" peak sample checking, i.e if sample value is highest in area of 80ms around the peak 
     #               (+/- 40ms, so +/-10 samples at 250Hz) (since QRS duration in healthy adult lasts around 80-100ms TODO CITE wikipedia)
 
-    for algo_name, algo_dict in peakDetect_dicts.items():
-
-        if algo_dict["clean"]:
+    for method_dict in peakDetect_dicts:
+        print("TESTEST: PEAK DETECT ON REF SIGNAL BY METHOD: ", method_dict["method_id"])
+        if method_dict["clean"]:
             time_start = time.time()
-            ref_signal = nk.ecg_clean(ecg_sync_ref, sampling_rate=sampling_rate, method=algo_dict["method"])
+            ref_signal = nk.ecg_clean(ecg_sync_ref, sampling_rate=sampling_rate, method=method_dict["method"])
         else:
             ref_signal = ecg_sync_ref 
             time_start = time.time()
         
         # perform peak detection (with artifact correction provided by neurokit2 if desired)
-        ref_results, ref_info = nk.ecg_peaks(ref_signal, sampling_rate = sampling_rate, method = algo_dict["method"], correct_artifacts = neurokit_peak_correction, show = False)
+        ref_results, ref_info = nk.ecg_peaks(ref_signal, sampling_rate = sampling_rate, method = method_dict["method"], correct_artifacts = neurokit_peak_correction, show = False)
         time_total = time.time() - time_start
 
         # if desired, additionally perform "naive" peak sample checking / correction, by checking surrounding
@@ -229,43 +251,43 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
             ref_info["ECG_R_Peaks"] = util.naive_peak_value_surround_checks(ref_signal, ref_info["ECG_R_Peaks"], 40)
             # fig_peaks_after = nk.events_plot(ref_info["ECG_R_Peaks"], ref_signal, color = "g")
 
-        algo_dict["gnd_truth_results"] = ref_results
-        algo_dict["gnd_truth_info"] = ref_info
-        algo_dict["gnd_truth_exec_time"] = time_total
+        method_dict["gnd_truth_results"] = ref_results
+        method_dict["gnd_truth_info"] = ref_info
+        method_dict["gnd_truth_exec_time"] = time_total
 
 
     # execute and profile neurokit peak-detection algorithms on dirty signal for comparision
     # do not use any artifact / peak correction whatsoever (for comparability)
-    for algo_name, algo_dict in peakDetect_dicts.items():
-
-        if algo_dict["clean"]:
+    for method_dict in peakDetect_dicts:
+        print("TESTEST: PEAK DETECT ON ECG_IC_SIGNAL BY METHOD: ", method_dict["method_id"])
+        if method_dict["clean"]:
             time_start = time.time()
-            ecg_signal = nk.ecg_clean(ecg_ic, sampling_rate=sampling_rate, method=algo_dict["method"])
+            ecg_signal = nk.ecg_clean(ecg_ic, sampling_rate=sampling_rate, method=method_dict["method"])
         else:
             ecg_signal = ecg_ic 
             time_start = time.time()
 
-        sig_results, sig_info = nk.ecg_peaks(ecg_signal, sampling_rate = sampling_rate, method = algo_dict["method"], correct_artifacts = False, show = False)
+        sig_results, sig_info = nk.ecg_peaks(ecg_signal, sampling_rate = sampling_rate, method = method_dict["method"], correct_artifacts = False, show = False)
         time_total = time.time() - time_start
         
-        algo_dict["sig_results"] = sig_results
-        algo_dict["sig_info"] = sig_info
-        algo_dict["sig_exec_time"] = time_total
+        method_dict["sig_results"] = sig_results
+        method_dict["sig_info"] = sig_info
+        method_dict["sig_exec_time"] = time_total
 
     
     
     # calculate quality metrics regarding comparision to ground truth
 
-    for algo_name, algo_dict in peakDetect_dicts.items():
-
-        gnd_truth_beats = np.array((algo_dict["gnd_truth_results"])["ECG_R_Peaks"])
+    for method_dict in peakDetect_dicts:
+        print("TESTEST: CALC METRICS BY METHOD: ", method_dict["method_id"])
+        gnd_truth_beats = np.array((method_dict["gnd_truth_results"])["ECG_R_Peaks"])
         gnd_truth_beat_amount = np.count_nonzero(gnd_truth_beats)
-        signal_beats = np.array((algo_dict["sig_results"])["ECG_R_Peaks"])
+        signal_beats = np.array((method_dict["sig_results"])["ECG_R_Peaks"])
         signal_beat_amount = np.count_nonzero(signal_beats)
-
+        # BUG FOR "martinez2004" gnd_truth_beats contains only ZEROS !!
         metrics_dict = calculate_metrics_with_reference(gnd_truth_beats, signal_beats)
         # store quality metrics
-        algo_dict["metrics_dict"] = metrics_dict
+        method_dict["metrics_dict"] = metrics_dict
         
     return peakDetect_dicts
 
