@@ -64,8 +64,8 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
     peak_segments = segment_peaks_equidistant_with_ref_peaks(ref_peaks, sig_peaks)
 
     true_hits = 0
-    true_misses = 0
-    true_false_positives = 0
+    false_misses = 0
+    false_positives = 0
     # displacements with closest distance to reference peak (in samples)
     sample_displacements = []
 
@@ -78,14 +78,14 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
         # if np.count_nonzero(ref_segment) != 1:
             # raise Exception("ERROR, REF_SEGMENT contains not single peak")
 
-        # check if *true* miss (no peak in signal segment whatsoever) 
+        # check if *truly* a miss / false negative (no peak in signal segment whatsoever) 
         if np.count_nonzero(signal_segment) == 0:
-            true_misses += 1
+            false_misses += 1
             continue
 
-        # check for presence of false positives in signal segment (more than one peak)
+        # check for presence of *truly* false positives in signal segment (more than one peak)
         if np.count_nonzero(signal_segment) > 1:
-            true_false_positives += (np.count_nonzero(signal_segment) - 1)
+            false_positives += (np.count_nonzero(signal_segment) - 1)
 
         # check if hit (matching peak in both segements)
         if (np.count_nonzero(np.logical_and(ref_segment, signal_segment)) == 1):
@@ -100,7 +100,7 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
         sample_displacements.append(min_distance)
 
     # assert that ref peaks amount is equal to true hits + true misses + displacements
-    assert np.count_nonzero(ref_peaks) == (true_hits + true_misses + len(sample_displacements))
+    assert np.count_nonzero(ref_peaks) == (true_hits + false_misses + len(sample_displacements))
 
     # convert sample displacements into temporal jitter values in ms 
     millis_jitter_values = list(map(lambda sample_dist: sample_dist / sampling_rate, sample_displacements))
@@ -112,10 +112,10 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
     jitter_score = 1 / (1 + (avg_jitter_millis) / 12)
 
     # calulate the F_1 score over all segments TODO according to BERN PORR PREPRINT
-    assert (true_hits + true_false_positives + true_misses) != 0
+    assert (true_hits + false_positives + false_misses) != 0
     
     try:
-        f_1_score = (2 * true_hits) / ((2 * true_hits) + true_false_positives + true_misses)
+        f_1_score = (2 * true_hits) / ((2 * true_hits) + false_positives + false_misses)
     except:
         error_msg = traceback.format_exc()
         f_1_score = 0
@@ -144,12 +144,13 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
 
     results_dict = {
         "true_positives": true_hits,
-        "false_negatives": true_misses,
-        "false_positives": true_false_positives,
-        "amount_displacements": len(sample_displacements),
-        "mean_displacement_sample": np.mean(sample_displacements),
-        "std_displacement_sample": np.std(sample_displacements),
-        "avg_jitter_value_millis": avg_jitter_millis,
+        "false_negatives": false_misses,
+        "false_positives": false_positives,
+        "peak_displacements_sample" : sample_displacements,
+        #"amount_displacements": len(sample_displacements),
+        #"mean_displacement_sample": np.mean(sample_displacements),
+        #"std_displacement_sample": np.std(sample_displacements),
+        #"avg_jitter_value_millis": avg_jitter_millis,
         "jitter_score": jitter_score,
         "f_1_score": f_1_score,
         "jf_score": jf_score,
@@ -160,7 +161,8 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
 
 
 
-def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
+
+def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
 
     # TODO variablen auslagern in methoden rumpf
     # first peak correction by neurokit
@@ -274,10 +276,20 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
         method_dict["sig_info"] = sig_info
         method_dict["sig_exec_time"] = time_total
 
-    
-    
-    # calculate quality metrics regarding comparision to ground truth
+    """
+    # setup list of peak detection metric results for the component
+    comp_pd_compTimes = []
+    comp_pd_TPs = []
+    comp_pd_FNs = []
+    comp_pd_FPs = []
+    comp_pd_displacements = [] # this is a list of lists
+    comp_pd_jitterscores = []
+    comp_pd_F1scores = []
+    comp_pd_JFscores = []
+    """
 
+
+    # calculate quality metrics regarding comparision to ground truth
     for method_dict in peakDetect_dicts:
         print("TESTEST: CALC METRICS BY METHOD: ", method_dict["method_id"])
         gnd_truth_beats = np.array((method_dict["gnd_truth_results"])["ECG_R_Peaks"])
@@ -286,11 +298,31 @@ def evaluate_all_peak_detect_methods(ecg_ic, ecg_sync_ref):
         signal_beat_amount = np.count_nonzero(signal_beats)
         # BUG FOR "martinez2004" gnd_truth_beats contains only ZEROS !!
         metrics_dict = calculate_metrics_with_reference(gnd_truth_beats, signal_beats)
+        #true_hits, false_misses, false_positives, sample_displacements, jitter_score, f_1_score, jf_score = calculate_metrics_with_reference(
+        #    gnd_truth_beats, signal_beats)
+
+        """ 
+        metrics_dict = {
+        "true_positives": true_hits,
+        "false_negatives": false_misses,
+        "false_positives": false_positives,
+        "peak_displacements_sample" : sample_displacements,
+        #"amount_displacements": len(sample_displacements),
+        #"mean_displacement_sample": np.mean(sample_displacements),
+        #"std_displacement_sample": np.std(sample_displacements),
+        #"avg_jitter_value_millis": avg_jitter_millis,
+        "jitter_score": jitter_score,
+        "f_1_score": f_1_score,
+        "jf_score": jf_score,
+        #"sensitivity": sensitivity
+        }
+        """
+        metrics_dict["compTime_sec"] =  method_dict["sig_exec_time"]
+        
         # store quality metrics
         method_dict["metrics_dict"] = metrics_dict
         
     return peakDetect_dicts
-
     
 
 
@@ -354,7 +386,7 @@ def main():
     print("################################################################################")
     print("NEEEEEEEEEEEEEEEWWWWWWWWWWWWWWWWWWWWWWWWWWWW MEEEEEEEEEEEEEEEEEEETHHHHHHHHHHHHHH")
 
-    methods_dict = evaluate_all_peak_detect_methods(ecg_related_timeseries, ecg_reference)
+    methods_dict = evaluate_all_peak_detect_methods_on_component(ecg_related_timeseries, ecg_reference)
     for algo_name, algo_dict in methods_dict.items():
         metrics_dict = algo_dict["metrics_dict"]
         print("---------------------------------------------------------------------------------------")
