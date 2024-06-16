@@ -629,7 +629,7 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
     ######################################################################
     # TODO Chapter Limitations! : welche obvious param variations noch abdeckbar und sinnvoll?
     
-    # setup np.array of ica dicts that store the metrics
+    # setup list of ica dicts that store the metrics
     # TODO what about random_state variabel??
     ica_dicts = [
         {"method_id" : "picard", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='picard')},
@@ -651,12 +651,13 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         ]
 
     # setup list to store the ecg_related timeseries for each MNE ICA variant
-    ecg_related_ics = []
+    seg_ecg_related_ics = []
 
-    # setup lists (convert to np.array before return) for ica metrics (numerical values)
-    segment_computation_times_sec = []
-    segment_pTp_snrs_dB = []
-    segment_rssq_snrs_dB = []
+    # setup lists for ica metrics (numerical values)
+    seg_computation_times_sec = []
+    seg_pTp_snrs_dB = []
+    seg_rssq_snrs_dB = []
+    seg_corrs_with_refECG = []
 
     # fit the MNE ica objects and time the fitting
     for ica_dict in ica_dicts:
@@ -673,7 +674,7 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         ica_dict["rawObj_create_time"] = rawObj_create_time
         ica_dict["mne_filter_time"] = mne_filter_time
         
-        segment_computation_times_sec.append(fit_time + rawObj_create_time + mne_filter_time)
+        seg_computation_times_sec.append(fit_time + rawObj_create_time + mne_filter_time)
 
         # store the resulting independent components
         # TODO Warum hier copy nötig?? verändert get_sources die Daten???
@@ -686,7 +687,8 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
 
         # identify the ecg-related independent component (by correlating with ecg reference)
         ecg_related_component, corr_value = icselect.identify_ecg_component_with_ref(ecg_ref_signal, ic_timeseries)
-        ecg_related_ics.append(ecg_related_component)
+        seg_ecg_related_ics.append(ecg_related_component)
+        seg_corrs_with_refECG.append(corr_value)
 
         # if negatively correlated, flip the ecg-related component around
         if corr_value < 0:
@@ -694,7 +696,7 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
 
         """ TEST: if flip successful / correctly
         fig, axs = plt.subplots(2, 1, sharex = True)
-        axs[0].plot(ecg_ref_signal)
+        axs[0].plot(ecg_ref_signal)seg_ecg_related_ics
         axs[0].set_title('ECG Reference Signal')
         axs[1].plot(ecg_related_component)
         axs[1].set_title('Flipped ECG-related IC')
@@ -706,11 +708,10 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         ica_dict["snr_ptp"] = snr_ptp
         ica_dict["snr_rssq"] = snr_rssq
         
-        segment_pTp_snrs_dB.append(snr_ptp)
-        segment_rssq_snrs_dB.append(snr_rssq)
+        seg_pTp_snrs_dB.append(snr_ptp)
+        seg_rssq_snrs_dB.append(snr_rssq)
 
-    
-    return (ica_dicts, ecg_related_ics, np.array(segment_computation_times_sec), np.array(segment_pTp_snrs_dB), np.array(segment_rssq_snrs_dB))
+    return (ica_dicts, seg_computation_times_sec, seg_pTp_snrs_dB, seg_rssq_snrs_dB, seg_corrs_with_refECG, seg_ecg_related_ics)
 
 # TODO REFACTOR THIS
 def main():
