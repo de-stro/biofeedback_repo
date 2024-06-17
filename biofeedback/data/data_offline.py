@@ -76,7 +76,8 @@ def get_offline_recording_sessions():
 
     offline_recordings = []
 
-    
+    # NOTE
+    # Geeignete Records: Proband 02 (Dennis)
     #for (id, path) in filepaths:
     #    offline_recordings.append(RecordingSession(filepath=path, session_id=id, sampling_rate=sampling_rate_cyton))
 

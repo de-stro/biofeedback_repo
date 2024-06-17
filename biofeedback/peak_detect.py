@@ -183,15 +183,15 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
         {"method_id": "dirty_hamilton2002", "method": "hamilton2002", "clean": False},
         {"method_id": "clean_hamilton2002", "method": "hamilton2002", "clean": True},
         # TODO BUG gamboa2008 Fehler untersuchen (index out of bounds) 
-        # wirft aktuell keine Fehler -> TODO NOCH AKTUELL??
-        {"method_id": "dirty_gamboa2008", "method": "gamboa2008", "clean": False},
+        # wirft aktuell keine Fehler -> TODO NOCH AKTUELL?? JA noch aktuell !!
+        #TODO TODO {"method_id": "dirty_gamboa2008", "method": "gamboa2008", "clean": False},
         # BUG Clean gamboa2008 wirft assertion error in calc_metrics_with_ref weil REF_SEG
-        # nicht single peak contained
+        # nicht single peak contained (same for dirty gamboa)
         #{"method_id": "clean_gamboa2008", "method": "gamboa2008", "clean": True},
         {"method_id": "dirty_elgendi2010", "method": "elgendi2010", "clean": False},
         {"method_id": "clean_elgendi2010", "method": "elgendi2010", "clean": True},
-        {"method_id": "dirty_engzeemod2012", "method": "engzeemod2012", "clean": False},
-        {"method_id": "clean_engzeemod2012" , "method": "engzeemod2012", "clean": True},
+        #TODO TODO {"method_id": "dirty_engzeemod2012", "method": "engzeemod2012", "clean": False},
+        #TODO TODO{"method_id": "clean_engzeemod2012" , "method": "engzeemod2012", "clean": True},
         {"method_id": "dirty_kalidas2017", "method": "kalidas2017", "clean": False},
         # TODO Remark: Only dummy for cleaning method of kalidas2017 provided by neurokit2, 
         # i.e not fully implemented yet (as of 16.05.2024)
@@ -216,7 +216,8 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
         {"method_id": "christov2004", "method": "christov2004", "clean": False},
         {"method_id": "nabian2018" , "method": "nabian2018", "clean": False},
         {"method_id": "rodrigues2021", "method": "rodrigues2021", "clean": False},
-        {"method_id": "manikandan2012", "method": "manikandan2012", "clean": False},
+        # TODO TODO BUG Manikandan gibt regelmäßig index out of bounds Fehler
+        # {"method_id": "manikandan2012", "method": "manikandan2012", "clean": False},
         {"method_id": "promac", "method": "promac", "clean": False}
     ]
 
