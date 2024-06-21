@@ -632,32 +632,34 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
     # setup list of ica dicts that store the metrics
     # TODO what about random_state variabel??
     ica_dicts = [
-        {"method_id" : "picard", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='picard')},
-        {"method_id" : "infomax", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='infomax')},
-        {"method_id" : "fastica", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='fastica')}
+        #{"method_id" : "picard", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='picard')},
+        #{"method_id" : "infomax", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='infomax')},
+        #{"method_id" : "fastica", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='fastica')},
 
         # TODO similar to infomax (according to MNE https://mne.tools/stable/generated/mne.preprocessing.ICA.html)
-        #"picard" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=False, extended=False))},
-        #"picard_o" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=True, extended=False))},
+        {"method_id": "picard", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='picard', fit_params=dict(ortho=False, extended=False))},  
+        {"method_id": "picard_o", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='picard', fit_params=dict(ortho=True, extended=False))},
         # TODO similar to extended Infomax (accord to MNE)
-        #"ext_picard" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=False, extended=True))},
+        {"method_id": "ext_picard", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='picard', fit_params=dict(ortho=False, extended=True))},
         # TODO similar to FASTICA according to MNE
-        #"ext_picard_o" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='picard', fit_params=dict(ortho=True, extended=True))},
-        #"infomax" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='infomax')},
-        #"ext_infomax" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='infomax', fit_params=dict(extended=True))},
-        #"fastica" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica')},
-        #"fastica_par" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica', fit_params=dict(algorithm='parallel'))},
-        #"fastica_defl" : {"ica": ICA(n_components=amountICs, max_iter=maxIter, random_state=97, method='fastica', fit_params=dict(algorithm='deflation'))}
-        ]
+        {"method_id": "ext_picard_o", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='picard', fit_params=dict(ortho=True, extended=True))},  
+        {"method_id": "infomax", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='infomax')},
+        {"method_id": "ext_infomax", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='infomax', fit_params=dict(extended=True))},
+        {"method_id": "fastica", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='fastica')},
+        {"method_id": "fastica_par", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='fastica', fit_params=dict(algorithm='parallel'))},
+        {"method_id": "fastica_defl", "ica": ICA(n_components=component_amount, max_iter=max_iterations, random_state=97, method='fastica', fit_params=dict(algorithm='deflation'))}
+    ]
 
     # setup list to store the ecg_related timeseries for each MNE ICA variant
     seg_ecg_related_ics = []
 
     # setup lists for ica metrics (numerical values)
     seg_computation_times_sec = []
+    seg_actual_iterations_amount = []
     seg_pTp_snrs_dB = []
     seg_rssq_snrs_dB = []
     seg_corrs_with_refECG = []
+    seg_dist_to_restCorrs = []
 
     # fit the MNE ica objects and time the fitting
     for ica_dict in ica_dicts:
@@ -676,6 +678,9 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         
         seg_computation_times_sec.append(fit_time + rawObj_create_time + mne_filter_time)
 
+        # extract the amount of iterations actually performed (until algorithm converged, if lower than maxIter)
+        seg_actual_iterations_amount.append(ica_dict["ica"].n_iter_)
+
         # store the resulting independent components
         # TODO Warum hier copy nötig?? verändert get_sources die Daten???
         sources = ica_dict["ica"].get_sources(mne_rawEEG.copy()) 
@@ -686,9 +691,10 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         ica_dict["independent_components"] = ic_timeseries
 
         # identify the ecg-related independent component (by correlating with ecg reference)
-        ecg_related_component, corr_value = icselect.identify_ecg_component_with_ref(ecg_ref_signal, ic_timeseries)
+        ecg_related_component, corr_value, dist_to_rest_corrs = icselect.identify_ecg_component_with_ref(ecg_ref_signal, ic_timeseries)
         seg_ecg_related_ics.append(ecg_related_component)
         seg_corrs_with_refECG.append(corr_value)
+        seg_dist_to_restCorrs.append(dist_to_rest_corrs)
 
         # if negatively correlated, flip the ecg-related component around
         if corr_value < 0:
@@ -711,7 +717,7 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         seg_pTp_snrs_dB.append(snr_ptp)
         seg_rssq_snrs_dB.append(snr_rssq)
 
-    return (ica_dicts, seg_computation_times_sec, seg_pTp_snrs_dB, seg_rssq_snrs_dB, seg_corrs_with_refECG, seg_ecg_related_ics)
+    return (ica_dicts, seg_computation_times_sec, seg_actual_iterations_amount, seg_pTp_snrs_dB, seg_rssq_snrs_dB, seg_corrs_with_refECG, seg_dist_to_restCorrs, seg_ecg_related_ics)
 
 # TODO REFACTOR THIS
 def main():
