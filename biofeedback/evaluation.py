@@ -103,12 +103,15 @@ def main():
 
         # apply ICA and store metrics for each segment of the recording session
         for seg_idx, segment in enumerate(segments):
-            """ TEST PURPOSE for shorter ICA eval um peak_detect zu debuggen """
+            """ TEST PURPOSE for shorter ICA eval um peak_detect zu debuggen
+            if seg_idx < 4:
+                continue
+            #################
+            """
             ##################
-            if seg_idx >= 2: 
+            if seg_idx >= 3: 
                 break
             ##################
-            
             
             seg_ref_ecg_signal = segment[2]
             seg_eeg_signals = segment[3:]
@@ -210,6 +213,8 @@ def main():
         #######################################################################################################
         
         # extract average computation time and SNRs for each ICA algorithm (with standard deviation)
+        # (averaged over all segments)
+
         sesh_avg_compTime_ICAs = []
         sesh_avg_pTpSNR_ICAs = []
         sesh_avg_rssqSNR_ICAs= []
@@ -228,16 +233,16 @@ def main():
             sesh_avg_refcorr_ICAs.append((np.average(ica_algo), np.std(ica_algo)))
 
         print("Average ICA comp Times (together with std)")
-        print(sesh_avg_compTime_ICAs)
+        print(pd.DataFrame(sesh_avg_compTime_ICAs))
         
         print("Average ICA pTp-SNRs (together with std)")
-        print(sesh_avg_pTpSNR_ICAs)
+        print(pd.DataFrame(sesh_avg_pTpSNR_ICAs))
 
         print("Average ICA rssq-SNRs (together with std)")
-        print(sesh_avg_rssqSNR_ICAs)
+        print(pd.DataFrame(sesh_avg_rssqSNR_ICAs))
 
         print("Average ICA Corrs with Ref ECG (together with std)")
-        print(sesh_avg_refcorr_ICAs)
+        print(pd.DataFrame(sesh_avg_refcorr_ICAs))
 
         
         # build combined evaluation matrices (first axis/rows as peak detection methods and second axis/columns
@@ -255,13 +260,12 @@ def main():
 
         # extract the average peak detection metrics for each ICA x PD combination
 
-
         for pd_idx, pd_method in enumerate(np.array(sesh_pd_compTimes_matrix).T):
             ica_variants = []
             for ica_idx, ica_variant in enumerate(pd_method):
                 ica_variants.append(np.average(ica_variant))
             sesh_avg_compTime_combined_PD.append(ica_variants)
-        print("ICA x PD Average Computation Times in Seconds PD")
+        print("PD x ICA: Average Computation Times in Seconds PD")
         print(pd.DataFrame(np.array(sesh_avg_compTime_combined_PD)))
 
         for pd_idx, pd_method in enumerate(np.array(sesh_pd_JFScores_matrix).T):
@@ -269,7 +273,7 @@ def main():
             for ica_idx, ica_variant in enumerate(pd_method):
                 ica_variants.append(np.average(ica_variant))
             sesh_avg_jfScore_combined_PD.append(ica_variants)
-        print("ICA x PD Average JF-Scores PD")
+        print("PD x ICA: Average JF-Scores PD")
         print(pd.DataFrame(np.array(sesh_avg_jfScore_combined_PD)))
 
         for pd_idx, pd_method in enumerate(np.array(sesh_pd_TPs_matrix).T):
@@ -277,7 +281,7 @@ def main():
             for ica_idx, ica_variant in enumerate(pd_method):
                 ica_variants.append(np.average(ica_variant))
             sesh_avg_TP_combined_PD.append(ica_variants)        
-        print("ICA x PD Average True Positives Amount PD")
+        print("PD x ICA: Average True Positives Amount PD")
         print(pd.DataFrame(np.array(sesh_avg_TP_combined_PD)))
         
         for pd_idx, pd_method in enumerate(np.array(sesh_pd_FNs_matrix).T):
@@ -285,7 +289,7 @@ def main():
             for ica_idx, ica_variant in enumerate(pd_method):
                 ica_variants.append(np.average(ica_variant))
             sesh_avg_FN_combined_PD.append(ica_variants)
-        print("ICA x PD Average False Negatives Amount PD")
+        print("PD x ICA: Average False Negatives Amount PD")
         print(pd.DataFrame(np.array(sesh_avg_FN_combined_PD)))
 
         for pd_idx, pd_method in enumerate(np.array(sesh_pd_FPs_matrix).T):
@@ -293,7 +297,7 @@ def main():
             for ica_idx, ica_variant in enumerate(pd_method):
                 ica_variants.append(np.average(ica_variant))
             sesh_avg_FP_combined_PD.append(ica_variants)
-        print("ICA x PD Average False Positives Amount PD")
+        print("PD x ICA: Average False Positives Amount PD")
         print(pd.DataFrame(np.array(sesh_avg_FP_combined_PD)))
 
         print("Shape of Displacement Matrix ", np.array(sesh_pd_displacements_matrix, dtype=list).shape)
@@ -315,10 +319,10 @@ def main():
             sesh_avg_sample_discplacements_combined_PD.append(ica_variants_sample_dis)  
             sesh_avg_amount_discplacements_combined_PD.append(ica_variants_amount_dis)  
 
-        print("ICA x PD Average Displacements in Samples PD")
+        print("PD x ICA: Average Displacements in Samples PD")
         print(pd.DataFrame(np.array(sesh_avg_sample_discplacements_combined_PD)))
 
-        print("ICA x PD Average Amount Displacements PD")
+        print("PD x ICA: Average Amount Displacements PD")
         print(pd.DataFrame(np.array(sesh_avg_amount_discplacements_combined_PD)))
 
 
@@ -336,8 +340,85 @@ def main():
 
         # evaluate feasibility of all combinations of MNE.ICA x Neurokit.Peak-Detection-Methods 
 
-    
+        # extract average computation time and peak detection metrics for each peak detection algorithm (with standard deviation)
+        # (averaged over all segments) 
 
+        sesh_avg_compTime_single_PDs = []
+        sesh_avg_jfScore_single_PDs = []
+        sesh_avg_TP_single_PDs = []
+        sesh_avg_FN_single_PDs = []
+        sesh_avg_FP_single_PDs = []
+        sesh_avg_sample_discplacements_single_PDs = []
+        sesh_avg_amount_discplacements_single_PDs = []
+
+        for pd_idx, pd_method in enumerate(np.array(sesh_pd_compTimes_matrix).T):
+            sesh_avg_compTime_single_PDs.append(np.average(pd_method.flatten()))
+           
+        print("Single PD: Average Computation Times in Seconds PD")
+        print(pd.DataFrame(np.array(sesh_avg_compTime_single_PDs)))
+
+
+        for pd_idx, pd_method in enumerate(np.array(sesh_pd_JFScores_matrix).T):
+            sesh_avg_jfScore_single_PDs.append(np.average(pd_method.flatten()))
+        
+        print("Single PD: Average JF-Scores PD")
+        print(pd.DataFrame(np.array(sesh_avg_jfScore_single_PDs)))
+
+
+        for pd_idx, pd_method in enumerate(np.array(sesh_pd_TPs_matrix).T):
+            sesh_avg_TP_single_PDs.append(np.average(pd_method.flatten()))
+
+        print("Single PD: Average True Positives Amount PD")
+        print(pd.DataFrame(np.array(sesh_avg_TP_single_PDs)))
+        
+
+        for pd_idx, pd_method in enumerate(np.array(sesh_pd_FNs_matrix).T):
+            sesh_avg_FN_single_PDs.append(np.average(pd_method.flatten()))
+
+        print("Single PD: Average False Negatives Amount PD")
+        print(pd.DataFrame(np.array(sesh_avg_FN_single_PDs)))
+
+
+        for pd_idx, pd_method in enumerate(np.array(sesh_pd_FPs_matrix).T):
+            sesh_avg_FP_single_PDs.append(np.average(pd_method.flatten()))
+
+        print("Single PD: Average False Positives Amount PD")
+        print(pd.DataFrame(np.array(sesh_avg_FP_single_PDs)))
+
+        # extract average displacement amount and average displacements in samples for each pd method
+        # (averaged over all segments and ICA-Results (ECG-related ICs))
+        
+        # TEST
+        #print("Shape of Displacement Matrix ", np.array(sesh_pd_displacements_matrix, dtype=list).shape)
+
+        # extract average displacements in samples (averaged over all segments)
+        for pd_idx, pd_method in enumerate(np.array(sesh_pd_displacements_matrix, dtype=list).T):
+            pd_method_sample_displacements = []
+            
+            for ica_idx, ica_variant in enumerate(pd_method):
+                for disp_list_idx, displacement_list in enumerate(ica_variant):
+                    pd_method_sample_displacements += displacement_list
+
+            sesh_avg_sample_discplacements_single_PDs.append(np.average(pd_method_sample_displacements))  
+
+        print("Single PD: Average Displacements in Samples PD")
+        print(pd.DataFrame(np.array(sesh_avg_sample_discplacements_single_PDs)))
+
+
+        # now average amount of displacements 
+        for pd_idx, pd_method in enumerate(np.array(sesh_pd_displacements_matrix, dtype=list).T):
+            pd_method_displacement_amounts = []
+            for ica_idx, ica_variant in enumerate(pd_method):
+                for disp_list_idx, displacement_list in enumerate(ica_variant):
+                    pd_method_displacement_amounts.append(len(displacement_list))
+
+            sesh_avg_amount_discplacements_single_PDs.append(np.average(pd_method_displacement_amounts))       
+
+        print("Single PD: Average Amount Displacements PD")
+        print(pd.DataFrame(np.array(sesh_avg_amount_discplacements_single_PDs)))
+
+        
+       
 
 if __name__ == "__main__":
     main()
