@@ -90,9 +90,11 @@ def main():
         sesh_ica_dicts_matrix = []
         
         sesh_ica_compTimes_matrix = []
+        sesh_ica_actual_iterations_amount_matrix = []
         sesh_ica_pTpSNRs_matrix = []
         sesh_ica_rssqSNRs_matrix = []
         sesh_ica_refcorrs_matrix = []
+        sesh_ica_dist_to_restCorrs_matrix = []
         sesh_ica_ecgICs_matrix = []
 
         sesh_ica_dicts_matrix = []
@@ -115,14 +117,16 @@ def main():
             
             seg_ref_ecg_signal = segment[2]
             seg_eeg_signals = segment[3:]
-            seg_ica_dicts, seg_computation_times_sec, seg_pTp_snrs_dB, seg_rssq_snrs_dB, seg_corrs_with_refECG, seg_ecg_related_ics = ica.evaluate_all_MNE_ICA_on_segment(
-                seg_ref_ecg_signal, seg_eeg_signals, component_amount=7, max_iterations=50)
+            seg_ica_dicts, seg_computation_times_sec, seg_actual_iterations_amount, seg_pTp_snrs_dB, seg_rssq_snrs_dB, seg_corrs_with_refECG, seg_dist_to_restCorrs, seg_ecg_related_ics = ica.evaluate_all_MNE_ICA_on_segment(
+                seg_ref_ecg_signal, seg_eeg_signals, component_amount=7, max_iterations="auto")
             
             # store ICA results of the segment in session matrix (row-wise)
             sesh_ica_compTimes_matrix.append(seg_computation_times_sec)
+            sesh_ica_actual_iterations_amount_matrix.append(seg_actual_iterations_amount)
             sesh_ica_pTpSNRs_matrix.append(seg_pTp_snrs_dB)
             sesh_ica_rssqSNRs_matrix.append(seg_rssq_snrs_dB)
             sesh_ica_refcorrs_matrix.append(seg_corrs_with_refECG)
+            sesh_ica_dist_to_restCorrs_matrix.append(seg_dist_to_restCorrs)
             sesh_ica_ecgICs_matrix.append(seg_ecg_related_ics)
 
             # store ref_ecg of the segment for easier access
@@ -219,6 +223,7 @@ def main():
         sesh_avg_pTpSNR_ICAs = []
         sesh_avg_rssqSNR_ICAs= []
         sesh_avg_refcorr_ICAs = []
+        sesh_avg_distance_restcorrs_ICAs = []
 
         for ica_algo in (np.transpose(sesh_ica_compTimes_matrix)):
             sesh_avg_compTime_ICAs.append((np.average(ica_algo), np.std(ica_algo)))
@@ -229,8 +234,13 @@ def main():
         for ica_algo in (np.transpose(sesh_ica_rssqSNRs_matrix)):
             sesh_avg_rssqSNR_ICAs.append((np.average(ica_algo), np.std(ica_algo)))
 
+        # extract average correlation of ecg-related IC with ref ECG
         for ica_algo in (np.abs(np.transpose(sesh_ica_refcorrs_matrix))):
             sesh_avg_refcorr_ICAs.append((np.average(ica_algo), np.std(ica_algo)))
+        
+        # extract average distance to rest correlation (as secondary metric for correlation strength)
+        for ica_algo in (np.abs(np.transpose(sesh_ica_dist_to_restCorrs_matrix))):
+            sesh_avg_distance_restcorrs_ICAs.append((np.average(ica_algo), np.std(ica_algo)))
 
         print("Average ICA comp Times (together with std)")
         print(pd.DataFrame(sesh_avg_compTime_ICAs))
@@ -243,6 +253,9 @@ def main():
 
         print("Average ICA Corrs with Ref ECG (together with std)")
         print(pd.DataFrame(sesh_avg_refcorr_ICAs))
+
+        print("Average distance of ICA Corr with Ref ECG to rest of correlation values (together with std)")
+        print(pd.DataFrame(sesh_avg_distance_restcorrs_ICAs))
 
         
         # build combined evaluation matrices (first axis/rows as peak detection methods and second axis/columns
@@ -394,7 +407,7 @@ def main():
         # extract average displacements in samples (averaged over all segments)
         for pd_idx, pd_method in enumerate(np.array(sesh_pd_displacements_matrix, dtype=list).T):
             pd_method_sample_displacements = []
-            
+
             for ica_idx, ica_variant in enumerate(pd_method):
                 for disp_list_idx, displacement_list in enumerate(ica_variant):
                     pd_method_sample_displacements += displacement_list
