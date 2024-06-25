@@ -304,7 +304,7 @@ def identify_ecg_component_with_ref(ecg_ref_signal, ic_signals):
     #### TEST VISUALLY ########################################################
     """
 
-    return (ecg_related_component, ecg_related_correlation, distance_to_rest_corrs)
+    return (ecg_related_component, ecg_related_index, ecg_related_correlation, distance_to_rest_corrs)
 
     
 if __name__ == "__main__":
