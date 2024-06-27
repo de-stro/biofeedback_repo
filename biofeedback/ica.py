@@ -609,14 +609,16 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
     # create mne.io.Raw Objects from input eeg data to perform MNE ICA on
     start_rawObj_create_time = time.time()
     mne_rawEEG = createObjectMNE('eeg', eeg_signals)
-    mne_rawECG = createObjectMNE('ecg', ecg_ref_signal.reshape(1, ecg_ref_signal.size))
     rawObj_create_time = time.time() - start_rawObj_create_time
 
     # highpass filter the data using MNE filter # TODO also for ECG needed ie. to keep synchrony??
     start_mne_filter_time = time.time()
     mne_filtEEG = mne_rawEEG.copy().filter(l_freq=1.0, h_freq=None)
-    # mne_filtECG = mne_rawECG.copy().filter(l_freq=1.0, h_freq=None)
     mne_filter_time = time.time() - start_mne_filter_time
+
+    #mne_rawECG = createObjectMNE('ecg', ecg_ref_signal.reshape(1, ecg_ref_signal.size))
+    #mne_filtECG = mne_rawECG.copy().filter(l_freq=1.0, h_freq=None)
+    #ecg_ref_signal = mne_rawECG.get_data().flatten()
 
     """FOR TEST ONLY """
     mne_object_length = ((((createObjectMNE('ecg', ecg_ref_signal.reshape(1, ecg_ref_signal.size))).get_data()).flatten())).size
@@ -661,6 +663,8 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
     seg_seconds_per_iteration = []
     seg_pTp_snrs_dB = []
     seg_rssq_snrs_dB = []
+    seg_pTp_snrs_dB_refECG = []
+    seg_rssq_snrs_dB_refECG = []
     seg_corrs_with_refECG = []
     seg_dist_to_restCorrs = []
     seg_variances_explained = []
@@ -725,16 +729,23 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         """
 
         # compute and store ICA quality metrics (using ECG reference signal for epochs centered around actual QRS complexes)
-        snr_ptp, snr_rssq = calulate_ICA_metrics_with_ecg_ref(ecg_ref_signal, ecg_related_component)
-        ica_dict["snr_ptp"] = snr_ptp
-        ica_dict["snr_rssq"] = snr_rssq
+        snr_ptp_component, snr_rssq_component = calulate_ICA_metrics_with_ecg_ref(ecg_ref_signal, ecg_related_component)
+        ica_dict["snr_ptp"] = snr_ptp_component
+        ica_dict["snr_rssq"] = snr_rssq_component
         
-        seg_pTp_snrs_dB.append(snr_ptp)
-        seg_rssq_snrs_dB.append(snr_rssq)
+        seg_pTp_snrs_dB.append(snr_ptp_component)
+        seg_rssq_snrs_dB.append(snr_rssq_component)
+
+        # calculate pTp and rssq SNR of reference chest-ECG for comparison
+        snr_ptp_reference, snr_rssq_reference = calulate_ICA_metrics_with_ecg_ref(ecg_ref_signal, ecg_ref_signal)
+        seg_pTp_snrs_dB_refECG.append(snr_ptp_reference)
+        seg_rssq_snrs_dB_refECG.append(snr_rssq_reference)
+
+        seg_SNRs_dB_reference = (seg_pTp_snrs_dB_refECG, seg_rssq_snrs_dB_refECG)
 
     seg_computation_times_sec = (seg_mne_createRawObj_times_sec, seg_filter_times_sec, seg_fitting_times_sec)
 
-    return (ica_dicts, seg_computation_times_sec, seg_actual_iterations_amount, seg_seconds_per_iteration, seg_pTp_snrs_dB, seg_rssq_snrs_dB, seg_corrs_with_refECG, seg_dist_to_restCorrs, seg_variances_explained, seg_ecg_related_ics)
+    return (ica_dicts, seg_computation_times_sec, seg_actual_iterations_amount, seg_seconds_per_iteration, seg_pTp_snrs_dB, seg_rssq_snrs_dB, seg_SNRs_dB_reference, seg_corrs_with_refECG, seg_dist_to_restCorrs, seg_variances_explained, seg_ecg_related_ics)
 
 # TODO REFACTOR THIS
 def main():
