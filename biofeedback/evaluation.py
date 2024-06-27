@@ -14,7 +14,7 @@ PEAK_DETECT_VAR_TO_EVAL = 16
 
 # ica parameters
 PC_AMOUNT_TO_CONSIDER = 7
-ICA_MAX_ITERATIONS = "auto"
+ICA_MAX_ITERATIONS = 1
 
 def main():
 
@@ -534,7 +534,15 @@ def main():
         print("Single PD: Average Amount Displacements PD (with std)")
         print(pd.DataFrame(np.array(sesh_avg_amount_discplacements_single_PDs)))
 
-        
+
+    print("RESULTS REPORT FOR")
+    print("Proband_01")
+    print("ICA_iterations: ", ICA_MAX_ITERATIONS)
+    print("PC_considered: ", PC_AMOUNT_TO_CONSIDER)
+    print("Time_started: " + "17:44")
+    print("Date: " + "27.06.2024")  
+    print("NOTES:")
+    print("neurokit pd excluded (dirty and clean)")
        
 
 if __name__ == "__main__":
