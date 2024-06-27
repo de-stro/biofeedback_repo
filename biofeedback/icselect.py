@@ -271,21 +271,28 @@ def identify_ecg_component_with_ref(ecg_ref_signal, ic_signals):
     Returns:
         _type_: _description_
     """
-
+    flipped = 0
     # compute correlation of components with ECG reference to identify ECG-related IC
     correlations_with_ref = []
     for ind_component in ic_signals:
         correlations_with_ref.append(np.corrcoef(ecg_ref_signal, ind_component)[0, 1])
     
+    # identify component with highest correlation to reference ECG (i.e. ECG-related IC)
     ecg_related_index = np.argmax(np.abs(correlations_with_ref))
     ecg_related_component = ic_signals[ecg_related_index]
     ecg_related_correlation = correlations_with_ref[ecg_related_index]
 
+    # if negatively correlated, flip the ECG-related component around and keep track of flip
+    if ecg_related_correlation < 0:
+        ecg_related_component *= -1
+        flipped = 1
+
     # calculate distance of ecg_related_correlation (highest abs corr value) to second highest corr value
     correlations_with_ref.pop(ecg_related_index)
     second_highest_corr_index = np.argmax(np.abs(correlations_with_ref))
+    second_highest_corr = correlations_with_ref[second_highest_corr_index]
 
-    distance_to_rest_corrs = ecg_related_correlation - correlations_with_ref[second_highest_corr_index]
+    distance_to_rest_corrs = abs(ecg_related_correlation) - abs(second_highest_corr)
 
     """ TEST: if ECG-related component was correctly identified
     print("IC_SELECT TEST: ECG_RELATED INDEX")
@@ -304,7 +311,7 @@ def identify_ecg_component_with_ref(ecg_ref_signal, ic_signals):
     #### TEST VISUALLY ########################################################
     """
 
-    return (ecg_related_component, ecg_related_index, ecg_related_correlation, distance_to_rest_corrs)
+    return (ecg_related_component, flipped, ecg_related_index, abs(ecg_related_correlation), distance_to_rest_corrs)
 
     
 if __name__ == "__main__":

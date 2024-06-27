@@ -705,7 +705,7 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         ica_dict["independent_components"] = ic_timeseries
 
         # identify the ecg-related independent component (by correlating with ecg reference)
-        ecg_related_component, ecg_related_index, corr_value, dist_to_rest_corrs = icselect.identify_ecg_component_with_ref(ecg_ref_signal, ic_timeseries)
+        ecg_related_component, flipped, ecg_related_index, corr_value, dist_to_rest_corrs = icselect.identify_ecg_component_with_ref(ecg_ref_signal, ic_timeseries)
         seg_ecg_related_ics.append(ecg_related_component)
         seg_corrs_with_refECG.append(corr_value)
         seg_dist_to_restCorrs.append(dist_to_rest_corrs)
@@ -715,10 +715,11 @@ def evaluate_all_MNE_ICA_on_segment(ecg_ref_signal, eeg_signals, component_amoun
         variance_dict = ica_dict["ica"].get_explained_variance_ratio(inst = mne_filtEEG, components = [ecg_related_index], ch_type= 'eeg')
         seg_variances_explained.append(variance_dict["eeg"])
 
+        """ OMIT THIS as outsourced to icselect.identify_ecg_component_with_ref()
         # if negatively correlated, flip the ecg-related component around
         if corr_value < 0:
             ecg_related_component *= np.sign(corr_value)
-
+        """
         """ TEST: if flip successful / correctly
         fig, axs = plt.subplots(2, 1, sharex = True)
         axs[0].plot(ecg_ref_signal)seg_ecg_related_ics
