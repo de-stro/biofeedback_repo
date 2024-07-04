@@ -152,13 +152,14 @@ class RecordingSession:
         data_only = self.loaded_data[channels_of_data_only, :]
         # TODO ein und ausschwingen des filters rausschneiden
         # TODO apply cutoff after preprocessing (to get rid of irregularities at very beginning of the processed signal)
-        prepro_data = np.array(prepro.preprocess_data(data_only)[:, session_begin_cutoff:-session_end_cutoff])
+        (prepo_results, prepo_time) = prepro.preprocess_data(data_only)
+        prepro_data = np.array(prepo_results[:, session_begin_cutoff:-session_end_cutoff])
 
         # append channels for package numbers and timestamp values 
         package_num_and_timestamps = self.loaded_data[[package_num_channel_cyton, timestamp_channel_cyton], session_begin_cutoff:-session_end_cutoff]
         data_matrix = np.vstack((np.array(package_num_and_timestamps), prepro_data))
 
-        return data_matrix
+        return (data_matrix, prepo_time)
     
 
 
