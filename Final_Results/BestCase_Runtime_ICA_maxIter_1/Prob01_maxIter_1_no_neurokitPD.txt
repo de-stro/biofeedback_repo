@@ -1,0 +1,601 @@
+§§§TEST§§§ ICA Computation for all recordings took in total: §§§
+255.9242742061615  (evaluation time in sec)
+§§§TEST§§§ PEAK DETECT Computation for all recordings took in total: §§§
+537.5471901893616  (evaluation time in sec)
+Average MNE Raw Object creation times in millis (together with SD)
+                M   SD
+picard        3.3  0.7
+picard_o      3.3  0.7
+ext_picard    3.3  0.7
+ext_picard_o  3.3  0.7
+infomax       3.3  0.7
+ext_infomax   3.3  0.7
+fastica_par   3.3  0.7
+fastica_defl  3.3  0.7
+Average MNE filtering times in millis (together with SD)
+                 M   SD
+picard        26.8  4.3
+picard_o      26.8  4.3
+ext_picard    26.8  4.3
+ext_picard_o  26.8  4.3
+infomax       26.8  4.3
+ext_infomax   26.8  4.3
+fastica_par   26.8  4.3
+fastica_defl  26.8  4.3
+Average ICA fitting times in millis (together with SD)
+                  M     SD
+fastica_defl  901.6   45.9
+ext_infomax   627.4  144.0
+infomax        43.0    6.5
+picard         41.3    7.7
+ext_picard     34.5    8.7
+ext_picard_o   30.9    4.5
+picard_o       30.3    4.1
+fastica_par    21.7    3.1
+Average amount of actual ICA iterations performed (together with SD)
+                M   SD
+picard        1.0  0.0
+picard_o      1.0  0.0
+ext_picard    1.0  0.0
+ext_picard_o  1.0  0.0
+infomax       1.0  0.0
+ext_infomax   1.0  0.0
+fastica_par   1.0  0.0
+fastica_defl  1.0  0.0
+Average amount of millis per iteration needed (together with SD)
+                  M     SD
+picard         41.3    7.7
+picard_o       30.3    4.1
+ext_picard     34.5    8.7
+ext_picard_o   30.9    4.5
+infomax        43.0    6.5
+ext_infomax   627.4  144.0
+fastica_par    21.7    3.1
+fastica_defl  901.6   45.9
+Average ICA pTp-SNRs (together with SD)
+                M   SD
+infomax       3.6  0.7
+ext_infomax   3.3  1.2
+picard        2.1  0.9
+fastica_defl  2.1  1.2
+picard_o      1.5  1.0
+fastica_par   1.5  0.9
+ext_picard_o  1.4  1.0
+ext_picard    0.4  0.7
+Average ICA rssq-SNRs (together with SD)
+                M   SD
+picard       -3.3  0.8
+picard_o     -3.9  0.9
+ext_picard   -5.0  0.8
+ext_picard_o -4.1  0.9
+infomax      -1.9  0.5
+ext_infomax  -2.2  1.1
+fastica_par  -3.9  0.9
+fastica_defl -3.5  1.4
+Average pTp-SNRs of reference chest-ECG(together with SD)
+                M   SD
+picard        7.0  0.7
+picard_o      7.0  0.7
+ext_picard    7.0  0.7
+ext_picard_o  7.0  0.7
+infomax       7.0  0.7
+ext_infomax   7.0  0.7
+fastica_par   7.0  0.7
+fastica_defl  7.0  0.7
+Average rssq-SNRs of reference chest-ECG (together with SD)
+                M   SD
+picard        2.1  0.5
+picard_o      2.1  0.5
+ext_picard    2.1  0.5
+ext_picard_o  2.1  0.5
+infomax       2.1  0.5
+ext_infomax   2.1  0.5
+fastica_par   2.1  0.5
+fastica_defl  2.1  0.5
+Average ICA Corrs with Ref ECG (together with SD)
+                 M    SD
+infomax       0.64  0.05
+ext_infomax   0.63  0.08
+fastica_defl  0.54  0.09
+picard        0.53  0.07
+fastica_par   0.50  0.08
+picard_o      0.49  0.07
+ext_picard_o  0.48  0.07
+ext_picard    0.43  0.06
+Average distance of ICA Corr with Ref ECG to rest of correlation values (together with SD)
+                 M    SD
+infomax       0.52  0.07
+ext_infomax   0.52  0.13
+fastica_defl  0.27  0.17
+picard        0.24  0.09
+fastica_par   0.19  0.12
+picard_o      0.17  0.11
+ext_picard_o  0.15  0.11
+ext_picard    0.08  0.06
+Average proportion of variance (in the original input data) explained by the ECG-related IC (in % together with SD)
+                 M    SD
+picard         6.0   6.5
+picard_o       8.7  10.1
+ext_picard    10.6  12.2
+ext_picard_o   9.1  10.8
+infomax        3.1   2.6
+ext_infomax    3.2   2.6
+fastica_par    8.0   9.7
+fastica_defl  11.0  12.4
+PD x ICA: MEAN (M) of PD Computation Times in Millis
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985     6.2       5.9         6.6           7.0      7.0          7.0          7.1           6.9
+clean_pantompkins1985     6.6       6.9         7.4           6.9      7.4          6.5          6.3           7.4
+dirty_hamilton2002       71.6      69.7        71.9          67.1     80.4         78.8         70.5          73.7
+clean_hamilton2002       48.3      58.1        52.4          47.8     49.2         56.8         50.7          51.0
+dirty_elgendi2010        21.3      21.2        22.5          20.1     23.9         24.0         21.9          22.9
+clean_elgendi2010        24.8      23.9        24.6          24.6     25.2         24.8         25.0          34.2
+dirty_engzeemod2012     174.6     173.8       173.6         164.0    209.1        205.2        166.3         182.5
+clean_engzeemod2012     168.4     171.1       162.6         180.8    201.8        189.6        158.6         189.3
+kalidas2017               3.8       4.4         4.5           4.1      4.1          3.9          4.3           4.3
+zong2003                486.1     494.0       488.2         489.8    493.9        483.3        483.5         477.4
+christov2004            411.4     394.1       395.0         394.0    429.6        427.0        404.4         409.2
+nabian2018               63.6      66.5        70.1          68.3     64.8         62.2         60.4          63.7
+rodrigues2021            31.8      34.2        29.1          31.5     35.9         31.7         30.4          31.3
+promac                  806.4     792.3       792.7         795.3    840.8        826.3        823.4         808.6
+PD x ICA: Standard Deviation (SD) of PD Computation Times in Millis
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985     1.2       1.1         1.6           2.1      1.9          0.9          2.8           1.5
+clean_pantompkins1985     1.9       2.5         2.7           2.4      2.1          2.6          2.1           2.5
+dirty_hamilton2002       11.6       7.8        10.2           7.3     22.5         15.2         12.1          11.9
+clean_hamilton2002        5.6      24.9         8.4           8.3      6.0         19.7          5.4           7.5
+dirty_elgendi2010         2.8       3.2         4.5           2.2      5.8          4.4          3.0           5.6
+clean_elgendi2010         2.9       2.7         4.3           3.1      4.8          4.7          3.8          31.7
+dirty_engzeemod2012      19.7      27.3        42.1          18.0     48.0         16.0         18.4          25.9
+clean_engzeemod2012      18.4      18.6        17.0          33.1     35.0         19.2         15.7          35.5
+kalidas2017               0.6       0.6         1.3           0.6      1.1          0.6          0.6           1.0
+zong2003                 19.8      39.1        19.3          28.5     30.6         31.2         17.7          12.8
+christov2004             37.1      14.4        23.5           7.5     39.8         41.1         15.7          28.7
+nabian2018                5.9       6.1        24.6           9.3      7.0          7.3          3.8           7.5
+rodrigues2021             4.6       7.8         3.7           4.6      6.3          4.7          3.8           4.0
+promac                   43.4      22.9        35.7          38.0     40.5         43.5         50.9          61.3
+PD x ICA: Average (M) of COMBINED Computation Times in Millis
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985    47.5      36.2        41.1          37.9     50.0        634.4         28.8         908.5
+clean_pantompkins1985    47.8      37.2        41.9          37.8     50.4        633.9         28.0         909.0
+dirty_hamilton2002      112.9     100.0       106.5          98.0    123.4        706.2         92.2         975.3
+clean_hamilton2002       89.5      88.4        86.9          78.7     92.3        684.2         72.4         952.6
+dirty_elgendi2010        62.5      51.5        57.0          51.0     66.9        651.4         43.6         924.5
+clean_elgendi2010        66.1      54.2        59.1          55.4     68.2        652.2         46.7         935.8
+dirty_engzeemod2012     215.8     204.1       208.2         194.8    252.2        832.6        188.0        1084.1
+clean_engzeemod2012     209.6     201.4       197.1         211.6    244.9        817.0        180.3        1090.9
+kalidas2017              45.1      34.7        39.0          34.9     47.1        631.3         26.0         905.9
+zong2003                527.3     524.3       522.7         520.6    536.9       1110.7        505.2        1379.0
+christov2004            452.7     424.4       429.5         424.8    472.6       1054.4        426.1        1310.8
+nabian2018              104.9      96.8       104.7          99.1    107.9        689.6         82.1         965.3
+rodrigues2021            73.1      64.5        63.7          62.4     79.0        659.1         52.1         932.9
+promac                  847.6     822.6       827.2         826.1    883.8       1453.7        845.1        1710.2
+PD x ICA: Standard Deviation (SD) of COMBINED Computation Times in Millis
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985     7.6       4.8         8.9           5.7      7.3        143.5          3.9          45.7
+clean_pantompkins1985     7.1       6.2         8.5           5.4      6.9        143.8          3.8          45.3
+dirty_hamilton2002       14.1      11.0        15.2           8.5     22.6        143.1         11.8          45.3
+clean_hamilton2002        7.9      27.3         9.8           9.5      9.1        151.6          6.2          46.2
+dirty_elgendi2010         8.3       5.6         8.9           5.3      8.6        145.6          3.2          46.5
+clean_elgendi2010         8.6       4.6         9.0           4.8      7.0        143.6          3.7          50.5
+dirty_engzeemod2012      23.1      26.7        41.9          17.1     50.0        153.9         18.8          42.5
+clean_engzeemod2012      19.7      17.0        14.9          33.8     36.8        160.1         16.4          45.5
+kalidas2017               7.7       4.4         8.8           4.5      6.6        143.9          3.2          46.2
+zong2003                 18.2      40.1        19.7          28.0     29.5        145.0         19.1          44.5
+christov2004             35.0      13.9        26.3           6.1     36.9        165.5         15.9          57.3
+nabian2018                8.5       8.7        25.1          10.8      9.8        145.5          4.1          43.1
+rodrigues2021             7.0      10.3         8.3           6.9      8.7        143.2          5.2          46.0
+promac                   43.8      22.7        41.5          36.1     44.4        163.2         50.7          80.7
+PD x ICA: Average (M) of JF-Scores PD in %
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985    61.8      62.2        58.0          62.0     64.6         65.0         60.0          60.0
+clean_pantompkins1985    69.8      69.3        64.5          67.8     86.7         84.1         69.6          69.1
+dirty_hamilton2002       64.9      61.9        58.7          61.8     76.1         75.3         62.3          65.9
+clean_hamilton2002       82.3      78.8        72.6          78.6     92.6         92.0         78.8          80.9
+dirty_elgendi2010        81.7      81.8        80.6          81.3     83.5         83.4         81.7          82.4
+clean_elgendi2010        85.0      83.1        81.0          83.1     88.5         89.0         84.1          85.8
+dirty_engzeemod2012      62.8      64.3        63.5          63.7     67.6         68.1         63.2          64.9
+clean_engzeemod2012      62.4      63.7        63.7          64.0     67.6         68.2         63.2          64.4
+kalidas2017              93.8      89.5        82.2          89.0     97.9         97.3         91.3          93.0
+zong2003                 89.5      88.3        88.5          88.2     91.0         91.5         88.5          88.7
+christov2004             46.6      45.7        45.3          45.4     53.3         53.9         46.4          48.2
+nabian2018               96.3      94.4        90.5          94.2     98.5         98.0         94.0          95.2
+rodrigues2021            72.3      70.3        66.9          70.0     78.6         78.6         69.7          71.7
+promac                   85.8      84.6        84.1          85.1     89.4         89.0         84.7          86.5
+PD x ICA: Standard Deviation (SD) of JF-Scores PD in %
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985     4.4       8.3         3.7           8.4      3.9          4.8          3.7           5.0
+clean_pantompkins1985     6.8       5.7         3.0           5.2      6.4          9.8          4.7           8.2
+dirty_hamilton2002        7.2       9.7         8.8           9.7     13.4         12.1          9.9           9.4
+clean_hamilton2002        7.6       8.0         6.3           8.2      7.4          6.5          7.0          10.5
+dirty_elgendi2010         3.6       3.0         3.4           3.1      2.7          2.9          2.7           2.3
+clean_elgendi2010         4.6       3.8         2.6           3.7      3.3          4.6          3.2           4.0
+dirty_engzeemod2012       4.5       3.2         3.3           3.2      5.5          6.2          3.1           4.5
+clean_engzeemod2012       5.1       3.2         3.9           4.9      6.6          6.4          4.5           4.4
+kalidas2017               5.6       8.0         7.9           8.4      1.5          3.1          4.3           5.9
+zong2003                  3.0       3.0         4.0           3.1      2.6          1.6          3.1           3.2
+christov2004              7.8       7.0         8.0           6.7     16.0         16.4          8.3           9.3
+nabian2018                2.1       3.1         2.7           3.1      1.0          2.5          3.1           3.1
+rodrigues2021             5.5       4.5         3.6           4.5      5.6          5.6          3.4           6.3
+promac                    3.1       3.5         2.5           3.7      3.2          2.8          2.3           3.6
+PD x ICA: Average (M) of True Positives Amount PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985     1.3       1.3         1.3           1.3      1.5          1.2          0.6           1.8
+clean_pantompkins1985     1.8       1.8         1.5           1.5      2.4          2.6          1.8           1.5
+dirty_hamilton2002        2.0       1.3         1.1           1.5      1.7          1.4          0.8           1.2
+clean_hamilton2002        3.2       4.0         3.3           3.7      5.4          5.8          3.5           3.8
+dirty_elgendi2010         6.6       6.7         7.4           6.8     10.0         10.9          8.7           9.8
+clean_elgendi2010         2.0       2.8         4.3           3.0      2.2          2.4          4.2           2.5
+dirty_engzeemod2012       4.1       3.4         4.2           3.6      5.3          5.7          3.9           5.2
+clean_engzeemod2012       2.9       2.6         3.7           2.7      3.8          3.7          4.3           5.2
+kalidas2017              21.6      17.2        12.2          16.7     24.0         24.4         16.6          20.3
+zong2003                  2.4       2.8         2.7           2.8      2.7          3.6          2.6           2.5
+christov2004              3.5       2.9         2.9           3.7      4.5          5.3          4.1           3.5
+nabian2018                7.2       7.1         6.8           7.3      9.6         10.2          8.5           9.4
+rodrigues2021             7.9       7.8         6.5           7.5     12.1         11.7          8.9           9.4
+promac                    5.4       3.8         3.9           4.0      7.5          6.2          3.6           4.8
+PD x ICA: Standard Deviation (SD) of True Positives Amount PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985     0.7       1.1         1.1           1.1      1.5          1.3          0.9           1.5
+clean_pantompkins1985     1.4       1.4         1.2           1.3      1.4          1.2          1.4           0.8
+dirty_hamilton2002        1.6       1.0         1.1           1.2      1.1          0.8          0.9           1.2
+clean_hamilton2002        1.7       2.0         1.7           1.9      2.6          2.0          2.3           1.8
+dirty_elgendi2010         2.7       3.8         2.6           3.9      3.0          4.1          5.1           5.3
+clean_elgendi2010         2.8       3.3         3.7           3.3      1.2          1.9          3.8           2.1
+dirty_engzeemod2012       2.3       2.6         3.0           2.6      2.5          3.6          2.6           3.8
+clean_engzeemod2012       2.3       2.1         2.9           2.1      2.0          2.0          3.3           2.6
+kalidas2017               4.9       5.2         5.0           5.5      4.3          4.6          3.7           8.2
+zong2003                  2.4       2.3         1.7           2.1      2.2          3.2          2.3           1.9
+christov2004              2.6       1.9         1.4           2.3      2.6          3.2          2.6           1.5
+nabian2018                3.3       3.8         3.5           4.1      3.1          4.2          4.3           5.5
+rodrigues2021             2.9       3.1         3.0           2.9      2.4          2.2          3.4           2.2
+promac                    2.3       2.7         2.6           2.8      2.3          2.3          2.2           2.4
+PD x ICA: Average (M) of False Negatives Amount PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985     0.0       0.2         0.0           0.2      0.0          0.0          0.0           0.0
+clean_pantompkins1985     0.0       0.1         0.1           0.0      0.2          0.1          0.0           0.1
+dirty_hamilton2002        2.8       3.8         3.9           3.8      0.9          0.3          3.9           2.5
+clean_hamilton2002        0.2       0.5         0.8           0.5      0.1          0.3          0.4           0.0
+dirty_elgendi2010         1.1       1.2         1.7           1.4      1.0          0.8          1.2           0.9
+clean_elgendi2010         0.2       0.1         0.2           0.1      0.0          0.2          0.1           0.0
+dirty_engzeemod2012      14.5      11.8         8.8          12.3     22.2         20.8          9.6          14.8
+clean_engzeemod2012      12.5      10.8         6.3          11.0     20.2         19.1          9.3          13.0
+kalidas2017               0.1       0.1         0.5           0.1      0.1          0.0          0.2           0.1
+zong2003                 13.9      15.2        13.3          15.2     13.5         12.6         15.2          14.4
+christov2004              0.5       0.6         0.3           0.6      0.2          0.2          0.3           0.3
+nabian2018                0.6       1.2         2.4           1.2      0.2          0.5          1.6           0.8
+rodrigues2021             0.0       0.0         0.1           0.0      0.0          0.0          0.0           0.0
+promac                    1.5       1.3         1.8           1.5      0.8          0.8          1.1           0.9
+PD x ICA: Standard Deviation (SD) of False Negatives Amount PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985     0.0       0.5         0.0           0.5      0.0          0.0          0.0           0.0
+clean_pantompkins1985     0.0       0.3         0.3           0.0      0.4          0.3          0.0           0.3
+dirty_hamilton2002        9.9      12.8        13.0          12.8      2.6          0.8         12.7           8.2
+clean_hamilton2002        0.6       1.3         2.9           1.3      0.3          1.1          1.1           0.0
+dirty_elgendi2010         2.2       2.4         2.7           2.4      2.3          1.8          2.4           2.2
+clean_elgendi2010         0.4       0.3         0.4           0.3      0.0          0.6          0.3           0.0
+dirty_engzeemod2012      11.5       7.6         3.4           7.4      8.9          9.4          6.8          10.1
+clean_engzeemod2012      10.8       7.1         2.2           6.9      6.7          8.4          6.6          10.3
+kalidas2017               0.3       0.3         0.6           0.3      0.3          0.0          0.4           0.3
+zong2003                  5.3       5.4         6.8           5.6      4.4          4.0          4.9           5.4
+christov2004              0.6       0.6         0.5           0.6      0.4          0.4          0.5           0.5
+nabian2018                0.9       2.0         2.0           1.8      0.4          0.8          1.6           0.9
+rodrigues2021             0.0       0.0         0.3           0.0      0.0          0.0          0.0           0.0
+promac                    1.5       1.5         2.3           1.4      1.4          1.6          1.1           1.4
+PD x ICA: Average (M) of False Positives Amount PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985    78.9      78.9        92.2          79.6     69.9         68.8         84.7          85.3
+clean_pantompkins1985    56.3      57.0        69.9          61.3     19.6         26.2         56.0          58.8
+dirty_hamilton2002       62.7      66.2        75.3          66.5     43.8         45.4         65.0          63.1
+clean_hamilton2002       27.8      34.6        47.5          35.3     10.8         11.2         34.7          32.2
+dirty_elgendi2010        27.5      26.9        28.3          27.6     24.2         24.8         27.2          26.3
+clean_elgendi2010        21.7      25.2        29.0          25.2     16.2         15.2         23.3          20.5
+dirty_engzeemod2012      38.8      41.8        49.5          42.2     14.4         16.9         48.6          33.6
+clean_engzeemod2012      43.6      45.2        54.4          44.2     19.3         20.5         49.2          39.0
+kalidas2017               8.5      15.5        27.6          16.5      2.6          3.5         11.9          10.0
+zong2003                 11.2      13.2        14.5          13.3      7.5          7.2         12.4          12.8
+christov2004            151.0     155.3       159.2         156.6    127.5        124.8        153.8         143.4
+nabian2018                3.4       5.2         9.2           5.5      1.2          1.6          5.2           4.6
+rodrigues2021            50.1      54.9        64.0          55.6     35.5         35.4         56.2          52.0
+promac                   19.0      21.1        21.1          19.9     14.1         14.7         21.2          18.4
+PD x ICA: Standard Deviation (SD) of False Positives Amount PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985    11.5      21.2         9.8          21.5     10.6         11.9          9.8          14.7
+clean_pantompkins1985    15.5      13.5         8.6          13.0     10.6         19.7         11.3          19.6
+dirty_hamilton2002       23.2      22.3        21.9          22.3     30.5         25.4         22.8          29.4
+clean_hamilton2002       13.6      16.0        15.9          16.4     12.5         10.1         14.6          20.7
+dirty_elgendi2010         7.1       4.4         4.9           4.8      3.8          4.4          4.1           4.9
+clean_elgendi2010         6.9       5.8         3.8           5.8      4.9          6.5          4.5           5.9
+dirty_engzeemod2012      19.9      15.9         8.3          15.8     17.8         22.3         15.6          17.2
+clean_engzeemod2012      16.4      16.5         8.8          17.4     19.6         23.0         16.8          21.3
+kalidas2017               8.0      13.0        14.4          14.2      1.8          4.3          6.2          10.1
+zong2003                  5.0       4.9         6.0           5.1      3.5          3.0          5.6           6.2
+christov2004             41.0      38.2        38.9          37.0     58.8         59.6         43.8          43.2
+nabian2018                2.3       3.0         3.3           3.1      1.1          2.1          2.7           3.2
+rodrigues2021            11.0       9.4         8.4           9.7      9.9          9.8          6.4          14.1
+promac                    5.1       5.3         4.3           5.6      3.9          3.3          3.6           5.0
+PD x ICA: Average (M) of Displacements in Samples PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985    17.2      17.6        19.9          17.9     16.0         17.1         19.1          17.6
+clean_pantompkins1985    14.1      15.9        18.0          16.3     12.1         11.9         16.1          14.6
+dirty_hamilton2002       22.9      23.4        24.8          23.9     18.2         18.7         22.9          20.9
+clean_hamilton2002       12.9      14.6        18.8          14.5      8.6          8.8         15.1          13.2
+dirty_elgendi2010        12.6      16.8        22.4          17.5      7.6          7.0         14.4          13.2
+clean_elgendi2010        14.7      16.1        19.6          16.6     11.8         11.7         15.9          16.2
+dirty_engzeemod2012      17.1      20.3        27.6          21.6     12.7         13.9         21.9          20.9
+clean_engzeemod2012      18.5      21.4        26.5          21.3     10.6         13.5         24.7          18.4
+kalidas2017               5.8       8.3        12.8           8.5      2.9          3.2          7.3           6.4
+zong2003                 20.0      20.6        21.4          20.7     18.8         19.2         21.1          20.8
+christov2004             10.9      10.9        11.6          11.1     10.0         10.4         11.4          10.6
+nabian2018               21.0      24.5        32.5          25.2     12.6         14.2         27.1          22.3
+rodrigues2021             4.9       5.9         8.2           6.3      3.2          3.5          5.8           4.1
+promac                    6.4       8.9        14.5           9.6      5.0          5.4          8.7           7.9
+PD x ICA: Standard Deviation (SD) of Displacements in Samples PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985    13.7      14.0        14.6          14.0     12.7         13.9         15.1          13.9
+clean_pantompkins1985    10.9      12.7        14.6          12.9     10.1          9.2         13.6          11.8
+dirty_hamilton2002       19.4      19.6        18.9          19.6     18.3         18.7         19.4          18.9
+clean_hamilton2002       15.0      16.7        18.9          16.7     11.4         11.4         16.8          15.1
+dirty_elgendi2010        21.3      24.1        26.7          24.5     16.5         15.6         22.0          21.5
+clean_elgendi2010        22.5      22.9        23.6          22.8     20.5         20.4         22.6          23.2
+dirty_engzeemod2012      23.9      27.4        53.6          33.9     43.8         46.3         51.2          40.0
+clean_engzeemod2012      25.8      33.1        36.2          32.4     36.8         44.4         58.9          40.0
+kalidas2017              13.3      16.2        20.3          16.2      9.5          9.2         15.5          14.2
+zong2003                 16.1      15.5        15.7          15.4     16.0         16.1         15.9          15.8
+christov2004              8.2       8.8         8.9           8.8      8.1          8.3          8.6           9.1
+nabian2018               31.2      32.4        34.1          32.7     26.0         27.5         33.7          32.1
+rodrigues2021            11.5      12.5        14.7          13.5      5.9          7.6         12.3           7.8
+promac                   10.7      16.2        23.7          17.7      9.7         10.1         16.0          16.4
+PD x ICA: Average (M) of Amount Displacements PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985    63.2      63.0        63.2          63.0     62.9         63.2         63.8          62.7
+clean_pantompkins1985    62.8      62.8        63.1          63.1     62.0         61.9         62.8          63.0
+dirty_hamilton2002       60.2      59.9        60.0          59.8     62.4         63.3         60.3          61.2
+clean_hamilton2002       61.2      60.2        60.5          60.5     59.2         58.5         60.8          60.8
+dirty_elgendi2010        58.3      58.1        56.9          57.8     55.0         54.3         56.2          55.2
+clean_elgendi2010        62.2      61.4        59.8          61.2     62.2         61.7         60.0          61.8
+dirty_engzeemod2012      42.2      45.5        47.6          44.8     33.2         34.2         47.2          40.8
+clean_engzeemod2012      45.2      47.2        50.5          46.8     36.5         37.8         46.9          42.3
+kalidas2017              42.4      46.8        51.5          47.3     40.0         39.7         47.3          43.7
+zong2003                112.8     111.1       113.1         111.1    112.8        112.8        111.3         112.2
+christov2004             60.4      60.8        61.2          60.1     59.7         58.8         60.0          60.6
+nabian2018               55.5      55.0        54.2          54.8     53.5         52.6         53.2          53.1
+rodrigues2021            57.2      57.4        58.5          57.6     53.1         53.5         56.2          55.8
+promac                   57.3      59.0        58.4          58.6     55.9         57.2         59.5          58.5
+PD x ICA: Standard Deviation (SD) of Amount Displacements PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985     4.2       3.5         4.1           3.5      4.1          3.9          3.9           3.7
+clean_pantompkins1985     4.3       4.1         4.9           4.6      5.0          4.4          4.4           4.9
+dirty_hamilton2002       11.7      14.2        14.5          14.2      5.7          4.9         14.2          10.4
+clean_hamilton2002        5.0       5.6         6.5           5.5      3.7          4.6          4.9           4.8
+dirty_elgendi2010         4.5       5.2         4.1           5.2      4.1          4.3          5.5           6.0
+clean_elgendi2010         4.9       4.8         4.0           4.8      4.3          3.8          4.5           5.2
+dirty_engzeemod2012       9.9       6.7         4.5           6.5      9.5         11.3          8.2          10.5
+clean_engzeemod2012       9.2       8.0         4.2           8.0      8.4         10.9          8.9           9.7
+kalidas2017               5.6       6.9         7.2           6.9      5.2          5.2          6.1           8.6
+zong2003                  7.5       8.3         9.6           8.3      8.7          7.8          9.8           9.1
+christov2004              4.5       4.8         4.6           4.7      5.3          5.6          4.9           4.6
+nabian2018                4.7       4.7         3.4           4.9      4.5          4.0          4.7           6.0
+rodrigues2021             4.2       4.1         3.6           4.2      5.0          4.5          4.3           4.4
+promac                    5.1       4.5         4.4           4.7      4.5          3.8          3.9           4.8
+PD x ICA: Average (M) of ALL True Positives Amount PD (meaning TP + DP)
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985    64.5      64.3        64.5          64.3     64.5         64.5         64.5          64.5
+clean_pantompkins1985    64.6      64.5        64.5          64.6     64.4         64.5         64.6          64.5
+dirty_hamilton2002       62.2      61.2        61.1          61.2     64.1         64.7         61.1          62.5
+clean_hamilton2002       64.5      64.2        63.8          64.2     64.6         64.4         64.3          64.7
+dirty_elgendi2010        64.9      64.8        64.3          64.6     65.0         65.2         64.8          65.1
+clean_elgendi2010        64.2      64.2        64.2          64.2     64.3         64.1         64.2          64.3
+dirty_engzeemod2012      46.2      48.8        51.8          48.4     38.5         39.8         51.1          45.9
+clean_engzeemod2012      48.1      49.8        54.2          49.5     40.3         41.5         51.2          47.5
+kalidas2017              64.0      64.0        63.6          64.0     64.0         64.1         63.9          64.0
+zong2003                115.2     113.9       115.8         113.8    115.5        116.5        113.9         114.7
+christov2004             63.8      63.8        64.1          63.8     64.2         64.2         64.1          64.1
+nabian2018               62.7      62.1        60.9          62.1     63.2         62.8         61.7          62.5
+rodrigues2021            65.2      65.2        65.1          65.2     65.2         65.2         65.2          65.2
+promac                   62.7      62.8        62.3          62.6     63.4         63.4         63.1          63.2
+PD x ICA: Standard Deviation (SD) of ALL True Positives Amount PD (meaning TP + DP)
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985     4.4       4.2         4.4           4.2      4.4          4.4          4.4           4.4
+clean_pantompkins1985     4.5       4.4         4.6           4.5      4.5          4.5          4.5           4.6
+dirty_hamilton2002       11.8      14.6        14.8          14.6      5.6          4.7         14.5          10.3
+clean_hamilton2002        4.7       5.1         5.9           5.0      4.3          4.8          4.7           4.5
+dirty_elgendi2010         3.4       3.5         3.6           3.4      3.7          3.6          3.8           3.4
+clean_elgendi2010         4.1       4.0         3.9           4.0      4.1          4.3          4.0           4.1
+dirty_engzeemod2012      10.5       7.4         4.3           7.3     10.3         10.7          8.6           9.6
+clean_engzeemod2012       8.8       7.8         3.8           7.8      7.9         10.4          8.9           9.6
+kalidas2017               4.2       4.4         4.2           4.4      4.4          4.3          4.3           4.4
+zong2003                  8.6       8.3        10.0           8.4      8.1          6.9          8.6           8.2
+christov2004              4.2       4.3         4.6           4.3      4.4          4.5          4.3           4.4
+nabian2018                3.8       3.5         3.4           3.6      4.3          4.4          4.1           4.4
+rodrigues2021             4.4       4.4         4.4           4.4      4.4          4.4          4.4           4.4
+promac                    3.7       3.6         3.4           3.8      3.8          4.0          3.9           3.8
+PD x ICA: Average (M) of Sensitivity (in %) PD 
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985  100.00     99.79      100.00         99.79   100.00       100.00       100.00        100.00
+clean_pantompkins1985  100.00     99.89       99.87        100.00    99.65        99.88       100.00         99.87
+dirty_hamilton2002      95.33     93.83       93.60         93.83    98.52        99.50        93.59         95.85
+clean_hamilton2002      99.62     99.11       98.61         99.24    99.89        99.50        99.39        100.00
+dirty_elgendi2010       98.48     98.25       97.56         98.02    98.58        98.91        98.34         98.71
+clean_elgendi2010       99.76     99.89       99.78         99.89   100.00        99.63        99.89        100.00
+dirty_engzeemod2012     76.58     80.69       85.51         79.88    63.10        65.37        83.96         75.94
+clean_engzeemod2012     80.08     82.21       89.64         81.79    66.45        68.08        84.30         78.84
+kalidas2017             99.89     99.87       99.29         99.87    99.87       100.00        99.76         99.87
+zong2003                89.26     88.32       89.72         88.26    89.56        90.32        88.29         88.92
+christov2004            99.20     99.07       99.52         99.07    99.77        99.65        99.55         99.53
+nabian2018              99.08     98.17       96.35         98.15    99.76        99.27        97.49         98.66
+rodrigues2021          100.00    100.00       99.88        100.00   100.00       100.00       100.00        100.00
+promac                  97.78     98.02       97.22         97.64    98.84        98.83        98.34         98.60
+PD x ICA: Standard Deviation (SD) of of Sensitivity (in %) PD
+                       picard  picard_o  ext_picard  ext_picard_o  infomax  ext_infomax  fastica_par  fastica_defl
+dirty_pantompkins1985    0.00      0.73        0.00          0.73     0.00         0.00         0.00          0.00
+clean_pantompkins1985    0.00      0.37        0.44          0.00     0.65         0.41         0.00          0.45
+dirty_hamilton2002      16.16     20.94       21.35         20.94     4.34         1.34        20.88         13.48
+clean_hamilton2002       0.95      2.19        4.81          2.19     0.37         1.75         1.76          0.00
+dirty_elgendi2010        3.04      3.29        3.79          3.26     3.18         2.53         3.32          2.98
+clean_elgendi2010        0.56      0.37        0.51          0.37     0.00         0.94         0.37          0.00
+dirty_engzeemod2012     17.37     12.15        5.38         11.72    15.03        15.56        12.13         15.42
+clean_engzeemod2012     16.04     12.10        3.33         11.85    11.34        14.44        12.15         15.91
+kalidas2017              0.37      0.44        1.01          0.44     0.44         0.00         0.55          0.44
+zong2003                 4.03      4.07        5.28          4.26     3.40         2.82         3.77          4.05
+christov2004             0.92      0.92        0.73          0.92     0.54         0.65         0.68          0.70
+nabian2018               1.32      2.90        2.78          2.68     0.55         1.40         2.51          1.39
+rodrigues2021            0.00      0.00        0.41          0.00     0.00         0.00         0.00          0.00
+promac                   2.34      2.29        3.25          2.16     2.16         2.39         1.63          2.10
+§§§TEST§§§ Evaluation for all recordings took in total: §§§
+7.629502296447754  (segmentation time in sec)
+794.3823745250702  (evaluation time in sec)
+Single PD: Average Computation Times in Millis PD (with SD)
+                           M    SD
+dirty_pantompkins1985    6.7   1.8
+clean_pantompkins1985    6.9   2.4
+dirty_hamilton2002      73.0  13.8
+clean_hamilton2002      51.8  13.2
+dirty_elgendi2010       22.2   4.3
+clean_elgendi2010       25.9  12.2
+dirty_engzeemod2012    181.1  33.2
+clean_engzeemod2012    177.8  29.1
+kalidas2017              4.2   0.9
+zong2003               487.0  26.7
+christov2004           408.1  31.5
+nabian2018              64.9  11.2
+rodrigues2021           32.0   5.5
+promac                 810.7  46.4
+Single PD: Average JF-Scores PD in % (with SD)
+                          M    SD
+nabian2018             95.1   3.6
+kalidas2017            91.8   7.7
+zong2003               89.3   3.2
+promac                 86.1   3.7
+clean_elgendi2010      85.0   4.6
+clean_hamilton2002     82.1  10.1
+dirty_elgendi2010      82.1   3.1
+clean_pantompkins1985  72.6  10.0
+rodrigues2021          72.3   6.4
+dirty_hamilton2002     65.9  11.8
+dirty_engzeemod2012    64.8   4.7
+clean_engzeemod2012    64.6   5.4
+dirty_pantompkins1985  61.7   6.0
+christov2004           48.1  11.1
+Single PD: Average True Positives Amount PD (with std)
+                          M   SD
+dirty_pantompkins1985   1.3  1.2
+clean_pantompkins1985   1.9  1.3
+dirty_hamilton2002      1.4  1.2
+clean_hamilton2002      4.1  2.2
+dirty_elgendi2010       8.4  4.2
+clean_elgendi2010       2.9  3.0
+dirty_engzeemod2012     4.4  3.0
+clean_engzeemod2012     3.6  2.6
+kalidas2017            19.1  6.6
+zong2003                2.8  2.3
+christov2004            3.8  2.5
+nabian2018              8.2  4.2
+rodrigues2021           9.0  3.4
+promac                  4.9  2.8
+Single PD: Average False Negatives Amount PD (with std)
+                          M    SD
+dirty_pantompkins1985   0.0   0.3
+clean_pantompkins1985   0.1   0.3
+dirty_hamilton2002      2.8  10.3
+clean_hamilton2002      0.4   1.4
+dirty_elgendi2010       1.2   2.3
+clean_elgendi2010       0.1   0.3
+dirty_engzeemod2012    14.4   9.6
+clean_engzeemod2012    12.8   8.9
+kalidas2017             0.1   0.4
+zong2003               14.2   5.4
+christov2004            0.4   0.5
+nabian2018              1.1   1.6
+rodrigues2021           0.0   0.1
+promac                  1.2   1.6
+Single PD: Average False Positives Amount PD (with std)
+                           M    SD
+dirty_pantompkins1985   79.8  16.3
+clean_pantompkins1985   50.6  22.1
+dirty_hamilton2002      61.0  26.9
+clean_hamilton2002      29.2  19.3
+dirty_elgendi2010       26.6   5.1
+clean_elgendi2010       22.0   7.1
+dirty_engzeemod2012     35.7  21.1
+clean_engzeemod2012     39.4  21.6
+kalidas2017             12.0  12.5
+zong2003                11.5   5.6
+christov2004           146.4  47.5
+nabian2018               4.5   3.6
+rodrigues2021           50.5  13.8
+promac                  18.7   5.3
+Single PD: Average Displacements in Samples PD (with std)
+                          M    SD
+dirty_pantompkins1985  17.8  14.1
+clean_pantompkins1985  14.9  12.3
+dirty_hamilton2002     21.9  19.2
+clean_hamilton2002     13.3  15.8
+dirty_elgendi2010      14.0  22.4
+clean_elgendi2010      15.3  22.5
+dirty_engzeemod2012    20.0  41.5
+clean_engzeemod2012    19.9  39.8
+kalidas2017             7.1  15.3
+zong2003               20.3  15.8
+christov2004           10.9   8.6
+nabian2018             22.5  31.9
+rodrigues2021           5.3  11.3
+promac                  8.3  16.0
+Single PD: Average Amount Displacements PD (with std)
+                           M    SD
+dirty_pantompkins1985   63.1   3.9
+clean_pantompkins1985   62.7   4.6
+dirty_hamilton2002      60.9  11.9
+clean_hamilton2002      60.2   5.2
+dirty_elgendi2010       56.5   5.1
+clean_elgendi2010       61.3   4.7
+dirty_engzeemod2012     41.9  10.1
+clean_engzeemod2012     44.2   9.8
+kalidas2017             44.8   7.6
+zong2003               112.2   8.7
+christov2004            60.2   4.9
+nabian2018              54.0   4.8
+rodrigues2021           56.2   4.7
+promac                  58.0   4.6
+Single PD: Average of ALL True Positives Amount (meaning TP + DP) (with SD)
+                           M    SD
+dirty_pantompkins1985   64.4   4.4
+clean_pantompkins1985   64.5   4.5
+dirty_hamilton2002      62.2  12.1
+clean_hamilton2002      64.3   4.9
+dirty_elgendi2010       64.8   3.6
+clean_elgendi2010       64.2   4.1
+dirty_engzeemod2012     46.3  10.0
+clean_engzeemod2012     47.8   9.4
+kalidas2017             64.0   4.3
+zong2003               114.9   8.5
+christov2004            64.0   4.4
+nabian2018              62.2   4.0
+rodrigues2021           65.1   4.4
+promac                  62.9   3.8
+Single PD: Average Sensitivity PD in % (with SD)
+                           M     SD
+dirty_pantompkins1985  99.95   0.38
+clean_pantompkins1985  99.90   0.39
+dirty_hamilton2002     95.51  16.85
+clean_hamilton2002     99.42   2.27
+dirty_elgendi2010      98.36   3.22
+clean_elgendi2010      99.86   0.50
+dirty_engzeemod2012    76.38  15.57
+clean_engzeemod2012    78.92  14.71
+kalidas2017            99.80   0.57
+zong2003               89.08   4.08
+christov2004           99.42   0.81
+nabian2018             98.36   2.34
+rodrigues2021          99.99   0.15
+promac                 98.16   2.39
+RESULTS REPORT FOR
+Proband_01
+ICA_iterations:  1
+PC_considered:  7
+average brainflow prepo time in sec (per recording):  0.006981849670410156 0.0
+Time_started: 13:18
+Date: 10.07.2024
+NOTES:
+Naive Peak Correction set to True
+F1 score was adapted
