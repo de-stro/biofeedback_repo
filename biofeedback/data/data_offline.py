@@ -13,7 +13,7 @@ from brainflow.data_filter import DataFilter
 
 import data.preprocessing as prepro
 
-PARTICIPANT_TO_CONSIDER = 3
+PARTICIPANT_TO_CONSIDER = 1
 
 board_id_cyton = BoardIds.CYTON_BOARD
 sampling_rate_cyton = BoardShim.get_sampling_rate(board_id_cyton)
@@ -75,7 +75,7 @@ def get_offline_recording_sessions():
     offline_recordings = []
 
     # NOTE
-    # evaluated records were record 01 (Good Case) and record 03 (Bad Case)
+    # evaluated records were record 01 (Proband01_Good Case) and record 03 (Proband02_Bad Case)
 
     """
     for (id, path) in filepaths:
@@ -105,7 +105,6 @@ class RecordingSession:
 
     
     
-    
     def get_data(self):
         """get_data _summary_ 
 
@@ -126,8 +125,9 @@ class RecordingSession:
 
         # preprocess data (ECG and EEG channels only) first
         data_only = self.loaded_data[channels_of_data_only, :]
-        # TODO ein und ausschwingen des filters rausschneiden
-        # TODO apply cutoff after preprocessing (to get rid of irregularities at very beginning of the processed signal)
+
+        # apply cutoff after preprocessing (to get rid of irregularities at very beginning of the processed signal)
+        # and remove transient reponse after filter application
         (prepo_results, prepo_time) = prepro.preprocess_data(data_only)
         prepro_data = np.array(prepo_results[:, session_begin_cutoff:-session_end_cutoff])
 
@@ -137,6 +137,23 @@ class RecordingSession:
 
         return (data_matrix, prepo_time)
     
+
+
+    def get_description(self):
+        """get_description provides access to meta data of the recording session
+
+        Returns:
+            dict: dictionary of meta data (accessible with keys "session_id" and "sampling_rate")
+        """
+
+        descript = {
+            "session_id" : self.session_id,
+            "sampling_rate" : self.sampling_rate,
+        }
+        return descript
+
+
+
 
 
 """ FOR TEST PURPOSES ONLY 
