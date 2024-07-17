@@ -105,42 +105,49 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
     # convert sample displacements into temporal jitter values in ms 
     millis_jitter_values = list(map(lambda sample_dist: sample_dist / sampling_rate, sample_displacements))
 
-    # calculate average over all jitter values 
+    # add true hits (that have 0 ms jitter) for calc of mean jitter
+    millis_jitter_values = millis_jitter_values + ([0] *  true_hits)
+                                                   
+    # calculate average over all jitter values (including peaks with zero jitter)
     avg_jitter_millis = np.mean(millis_jitter_values)
 
     # calculate jitter score according to TODO PAPER Von BERND PORR over all the segments 
     jitter_score = 1 / (1 + (avg_jitter_millis) / 12)
 
-    # calulate the F_1 score over all segments TODO according to BERN PORR PREPRINT
-    assert (true_hits + false_positives + false_misses) != 0
+    # calculate the F_1 score over all segments TODO according to BERN PORR PREPRINT
+    #assert (true_hits + false_positives + false_misses) != 0
+    assert (true_hits + len(sample_displacements) + false_positives + false_misses) != 0
     
+    amount_true_positives = true_hits + len(sample_displacements)
     try:
-        f_1_score = (2 * true_hits) / ((2 * true_hits) + false_positives + false_misses)
+        #f_1_score = (2 * true_hits) / ((2 * true_hits) + false_positives + false_misses)
+        f_1_score = (2 * amount_true_positives) / ((2 * amount_true_positives) + false_positives + false_misses)
     except:
         error_msg = traceback.format_exc()
         f_1_score = 0
         print("Calculating F_1 Score, an Error occured!")
         print(error_msg)
 
-    # calculate the JF-score according to TODO PAPER BERN PORR 
+    # calculate the JF-score (in %) according to TODO PAPER BERN PORR 
     jf_score = f_1_score * jitter_score * 100
     
 
-    """ TODO Omit this score
+    """ TODO Omit this score """
     # NOTE Da sensitivity nur true hits und misses berücksichtigt,
     # es aber vorkommen kann das beides null ist (da alles peak displacements sind)
     # und dadurch divide by zero ERRROR (weil wir mehr als nur true misses betrachten)
     # calculate further metrics 
-    # sensitivity here regards only (possibly displaced) hits and 
+    # sensitivity (in %) here regards only (possibly displaced) hits and 
     # misses (with dynamic tolerance window of half distance to next beat)
     try:
-        sensitivity = true_hits / (true_hits + true_misses)
+        #sensitivity = true_hits / (true_hits + true_misses)
+        sensitivity = (amount_true_positives / (amount_true_positives + false_misses)) * 100
     except:
         sensitivity = 0
         error_msg = traceback.format_exc()
         print("Calculating Sensitivity, an Error occured!")
         print(error_msg)
-    """
+    
 
     results_dict = {
         "true_positives": true_hits,
@@ -154,7 +161,8 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
         "jitter_score": jitter_score,
         "f_1_score": f_1_score,
         "jf_score": jf_score,
-        #"sensitivity": sensitivity
+        "sensitivity": sensitivity,
+        "all_hits": amount_true_positives
     }
 
     return results_dict
@@ -168,7 +176,7 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
     # first peak correction by neurokit
     neurokit_peak_correction = True
     # afterwards naive peak sample value check / correction
-    naive_peak_sample_correction = False
+    naive_peak_sample_correction = True
 
     ################ Parameterize and Profile NeuroKit2. Peak-Detection Algorithms ################################
     # setup dicts for each neurokit peak-detection algorithm (include version with cleaned input if provided by NeuroKit2)
@@ -184,18 +192,23 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
         {"method_id": "clean_hamilton2002", "method": "hamilton2002", "clean": True},
         # TODO BUG gamboa2008 Fehler untersuchen (index out of bounds) 
         # wirft aktuell keine Fehler -> TODO NOCH AKTUELL?? JA noch aktuell !!
-        #TODO TODO {"method_id": "dirty_gamboa2008", "method": "gamboa2008", "clean": False},
+        #TODO TODO 
+        #{"method_id": "dirty_gamboa2008", "method": "gamboa2008", "clean": False},
         # BUG Clean gamboa2008 wirft assertion error in calc_metrics_with_ref weil REF_SEG
         # nicht single peak contained (same for dirty gamboa)
         #{"method_id": "clean_gamboa2008", "method": "gamboa2008", "clean": True},
         {"method_id": "dirty_elgendi2010", "method": "elgendi2010", "clean": False},
         {"method_id": "clean_elgendi2010", "method": "elgendi2010", "clean": True},
-        #TODO TODO {"method_id": "dirty_engzeemod2012", "method": "engzeemod2012", "clean": False},
-        #TODO TODO{"method_id": "clean_engzeemod2012" , "method": "engzeemod2012", "clean": True},
+        #TODO TODO 
+        # ZACKA
+        {"method_id": "dirty_engzeemod2012", "method": "engzeemod2012", "clean": False},
+        #TODO TODO
+        # ZACKA
+        {"method_id": "clean_engzeemod2012" , "method": "engzeemod2012", "clean": True},
         {"method_id": "dirty_kalidas2017", "method": "kalidas2017", "clean": False},
         # TODO Remark: Only dummy for cleaning method of kalidas2017 provided by neurokit2, 
         # i.e not fully implemented yet (as of 16.05.2024)
-        {"method_id": "clean_kalidas2017", "method": "kalidas2017", "clean": True},
+        #{"method_id": "clean_kalidas2017", "method": "kalidas2017", "clean": True},
         # TODO emrich2023 Fehler untersuchen (not implemented bzw. "vg" method (nur für clean?))
         # -> UPDATE THE NEUROKIT IMPORT ??
         # BUG DIRTY EMRICH wirft Fehler
@@ -204,7 +217,7 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
         # BUG Clean EMRICH wirft Fehler 
         # "NeuroKit error: ecg_clean(): 'method' should be one of 'neurokit', 'biosppy', 
         # 'pantompkins1985', 'hamilton2002', 'elgendi2010', 'engzeemod2012', 'templateconvolution'."
-        # {"method_id": "clean_emrich2023", "method": "emrich2023", "clean": True},
+        #{"method_id": "clean_emrich2023", "method": "emrich2023", "clean": True},
 
         # detection methods with no cleaning method provided yet (by neurokit2) or 
         # not forseen at all (by implementation authors)
@@ -217,9 +230,10 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
         {"method_id": "nabian2018" , "method": "nabian2018", "clean": False},
         {"method_id": "rodrigues2021", "method": "rodrigues2021", "clean": False},
         # TODO TODO BUG Manikandan gibt regelmäßig index out of bounds Fehler
-        # {"method_id": "manikandan2012", "method": "manikandan2012", "clean": False},
+        #{"method_id": "manikandan2012", "method": "manikandan2012", "clean": False} 
         {"method_id": "promac", "method": "promac", "clean": False}
-    ]
+        
+        ]
 
     # execute and profile neurokit peak-detection algorithms for REF ECG signal as ground truth
 
