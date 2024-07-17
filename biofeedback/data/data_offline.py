@@ -1,18 +1,19 @@
 """
-    TODO Description
+    Module description
 """
 import os
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+#import pandas as pd
+#import matplotlib.pyplot as plt
 
 from brainflow.data_filter import DataFilter
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, LogLevels, BoardIds
+from brainflow.board_shim import BoardShim, BoardIds
 from brainflow.data_filter import DataFilter
-from brainflow.data_filter import FilterTypes
-from brainflow.data_filter import DetrendOperations
+
 
 import data.preprocessing as prepro
+
+PARTICIPANT_TO_CONSIDER = 3
 
 board_id_cyton = BoardIds.CYTON_BOARD
 sampling_rate_cyton = BoardShim.get_sampling_rate(board_id_cyton)
@@ -21,18 +22,17 @@ sampling_rate_cyton = BoardShim.get_sampling_rate(board_id_cyton)
 package_num_channel_cyton = BoardShim.get_package_num_channel(board_id_cyton)
 timestamp_channel_cyton = BoardShim.get_timestamp_channel(board_id_cyton)
 eeg_channels_cyton = BoardShim.get_eeg_channels(board_id_cyton)[:-1] # drop last channel (as we use it for ECG)
-ecg_channel_cyton = BoardShim.get_ecg_channels(board_id_cyton).pop() # we use last channel (8th) for ECG! TODO WO ANDERWEITIG VERMERKT?!?!?
+ecg_channel_cyton = BoardShim.get_ecg_channels(board_id_cyton).pop() # NOTE we use last channel (8th) for ECG!
 
 channels_of_interest = [package_num_channel_cyton, timestamp_channel_cyton, ecg_channel_cyton] + eeg_channels_cyton
 channels_of_data_only = [ecg_channel_cyton] + eeg_channels_cyton
 
 # cutoffs (in samples) to exclude recording setup/cool-down noise
-# TODO determine these params visually!! (same for all recordings)
 session_begin_cutoff = 120 * sampling_rate_cyton 
 session_end_cutoff = 10 * sampling_rate_cyton
 
 
-# TODO Move data into repository
+# recorded data
 
 path_dir_01 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_01_2024-02-01_19-31-18'
 name_file_01 = 'BrainFlow-RAW_2024-02-01_19-31-18_0.csv'
@@ -56,8 +56,6 @@ session_id_05 = "off_proband_05"
 
 
 
-# TODO wie steuert das Interface hier die parametrisierung der einzelnen Recording Objekte????
-# TODO Data Segmentation und Cutoff ist Problem des F-Eval Scripts 
 def get_offline_recording_sessions():
     """get_offline_recording_sessions loads all recording sessions into memory as RecordingSession objects
     (these encapsule each recording together with their meta data) and acts as an interface, therefore hiding 
@@ -77,13 +75,16 @@ def get_offline_recording_sessions():
     offline_recordings = []
 
     # NOTE
-    # Geeignete Records: Proband 02 (Dennis)
-    #for (id, path) in filepaths:
-    #    offline_recordings.append(RecordingSession(filepath=path, session_id=id, sampling_rate=sampling_rate_cyton))
+    # evaluated records were record 01 (Good Case) and record 03 (Bad Case)
 
-    # FOR TEST PURPOSES: Laden aller Recordings aussparen for now! (nur dennis record laden)
-    path = (filepaths[1])[1]
-    id = (filepaths[1])[0]
+    """
+    for (id, path) in filepaths:
+        offline_recordings.append(RecordingSession(filepath=path, session_id=id, sampling_rate=sampling_rate_cyton))
+    """
+
+    # only extract a single recording here instead
+    path = (filepaths[PARTICIPANT_TO_CONSIDER])[1]
+    id = (filepaths[PARTICIPANT_TO_CONSIDER])[0]
     offline_recordings.append(RecordingSession(filepath=path, session_id=id, sampling_rate=sampling_rate_cyton))
 
     return offline_recordings
@@ -102,36 +103,11 @@ class RecordingSession:
         # load OpenBCI recording (CSV-file in BrainFlow Format)
         self.loaded_data =  DataFilter.read_file(filepath)
 
-        """ TODO OMIT THIS
-        # first channel is package numbers, second timestamp values, third ECG reference signal and 
-        # remaining channels are EEG signal / timeseries data
-        # channels_of_interest = [package_num_channel_cyton, timestamp_channel_cyton, ecg_channel_cyton] + eeg_channels_cyton
-        # channels_of_data_only = [ecg_channel_cyton] + eeg_channels_cyton
-
-        
-        # 2D data maxtrix with channels of interest only, with specified cutoff begin/end of recording applied
-        # (rows are channels, columns are values / the actual data packages)
-        #self.return_data_only = self.loaded_data[channels_of_interest, session_begin_cutoff:-session_end_cutoff]
-        #self.preprocessed_data = prepro.preprocess_data(data_only)
-
-        self.eeg_data = self.loaded_data[eeg_channels_cyton, session_begin_cutoff:-session_end_cutoff]
-        self.ecg_data = self.loaded_data[ecg_channel_cyton, session_begin_cutoff:-session_end_cutoff]
-        self.timestamps = self.loaded_data[timestamp_channel_cyton, session_begin_cutoff:-session_end_cutoff]
-   
-
-        # TODO ist das so sinnvoller??
-        data_channels_cyton = [ecg_channel_cyton] + eeg_channels_cyton
-        self.return_data_only = self.loaded_data[data_channels_cyton, session_begin_cutoff:-session_end_cutoff]
-
-        # TODO Check BrainFLow Format ob hier noch transposed werden muss oder nicht!!! Stutze Array auf 1D??
-
-    
-        """
     
     
     
     def get_data(self):
-        """get_data _summary_ # TODO
+        """get_data _summary_ 
 
         Returns:
             _type_: _description_
@@ -142,7 +118,7 @@ class RecordingSession:
     
     
     def get_preprocessed_data(self):
-        """get_preprocessed_data _summary_ # TODO
+        """get_preprocessed_data _summary_ 
 
         Returns:
             _type_: _description_
@@ -161,93 +137,6 @@ class RecordingSession:
 
         return (data_matrix, prepo_time)
     
-
-
-
-
-
-
-
-    # TODO OMIT REST OF Functions
-    #def get_ECG_data(self):
-        """get_ECG_data returns ECG timeseries data as 1D numpy array (without timestamps!). Values are in uV!
-        
-        Returns:
-            ndarray[Any, dtype[float64]]: ECG timeseries data as 1D numpy array (values in uV)
-        """
-
-        # BrainFlow returns uV!!
-        #ecg_data = self.loaded_data[ecg_channel_cyton, session_begin_cutoff:-session_end_cutoff]
-        #return np.array(ecg_data)
-    
-    # TODO Check BrainFLow Format ob hier noch transposed werden muss oder nicht!!! stutze Array auf 2D??
-    #def get_EEG_data(self):
-        """get_EEG_data returns EEG timeseries data as 2D numpy array (without timestamps!). Values are in uV!
-        
-        Returns:
-            ndarray[Any, dtype[float64]]: EEG timeseries data as 2D numpy array (rows are channels and columns are values in uV)
-        """
-         # BrainFlow returns uV!!
-        #eeg_data = self.loaded_data[eeg_channels_cyton, session_begin_cutoff:-session_end_cutoff]
-        #return np.array(eeg_data)
-    
-    # TODO Check Format und stutze auf 1D Array
-    #def get_preprocessed_ECG_data(self):
-        """get_preprocessed_ECG_data returns preprocessed ECG timeseries data as 1D numpy array (without timestamps!). Values are in uV!
-        Preprocessing is provided by BrainFlow
-        
-        Returns:
-            ndarray[Any, dtype[float64]]: Preprocessed ECG timeseries data as 1D numpy array (values in uV)
-        """
-        #prepro_data = prepro.preprocess_data(self.return_data_only)
-        #prepro_ecg = prepro_data[ecg_channel_cyton, session_begin_cutoff:-session_end_cutoff]
-        #return np.array(prepro.preprocess_data([new_ecg_data]))
-
-    # TODO Check Format und stzte auf 2D Array
-    #def get_preprocessed_EEG_data(self):
-        """get_preprocessed_EEG_data returns preprocessed EEG timeseries data as 2D numpy array (without timestamps!). Values are in uV!
-        Preprocessing is provided by BrainFlow
-        
-        Returns:
-            ndarray[Any, dtype[float64]]: Preprocessed EEG timeseries data as 2D numpy array (rows are channels and columns are values in uV)
-        """
-        #return np.array(prepro.preprocess_data(self.eeg_data))
-    
-    
-    # TODO OMIT THIS
-    # TODO macht das Unterschied ob ich EEG UND ECG oder nur EEG preprocesse etc??
-    #def get_preprocessed_data(self):
-        """get_preprocessed_data first channel ECG ref signal, rest is EEG
-        already cut-off as specified in script 
-
-        Returns:
-            _type_: _description_
-        """
-        #return np.array(prepro.preprocess_data(self.return_data_only))
-    
-    # TODO BRAUCHEN WIR HIER AUCH NOCH TIME STAMPS?
-    
-    #def get_timestamps(self):
-        """get_timestamps provides access to data of boards timestamp channel. Board uses UNIX timestamps in seconds,
-        this counter starts at the Unix Epoch on January 1st, 1970 at UTC (microsecond precision)
-
-        Returns:
-            ndarray[Any, dtype[float64]]: Timestamp values as 1D numpy array (values in seconds)
-        """
-        #return np.array(self.timestamps)
-    
-    def get_description(self):
-        """get_description provides access to meta data of the recording session
-
-        Returns:
-            dict: dictionary of meta data (accessible with keys "session_id" and "sampling_rate")
-        """
-
-        descript = {
-            "session_id" : self.session_id,
-            "sampling_rate" : self.sampling_rate,
-        }
-        return descript
 
 
 """ FOR TEST PURPOSES ONLY 
