@@ -1,10 +1,12 @@
 """
     Module description
 """
+
 import os
+from pathlib import Path
 import numpy as np
-#import pandas as pd
-#import matplotlib.pyplot as plt
+import pandas as pd
+import matplotlib.pyplot as plt
 
 from brainflow.data_filter import DataFilter
 from brainflow.board_shim import BoardShim, BoardIds
@@ -12,8 +14,8 @@ from brainflow.data_filter import DataFilter
 
 
 import data.preprocessing as prepro
-
-PARTICIPANT_TO_CONSIDER = 1
+# starting from 0 (!)
+PARTICIPANT_TO_CONSIDER = 0
 
 board_id_cyton = BoardIds.CYTON_BOARD
 sampling_rate_cyton = BoardShim.get_sampling_rate(board_id_cyton)
@@ -31,29 +33,28 @@ channels_of_data_only = [ecg_channel_cyton] + eeg_channels_cyton
 session_begin_cutoff = 120 * sampling_rate_cyton 
 session_end_cutoff = 10 * sampling_rate_cyton
 
+curr_dir = os.path.dirname(__file__)
 
 # recorded data
-
-path_dir_01 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_01_2024-02-01_19-31-18'
-name_file_01 = 'BrainFlow-RAW_2024-02-01_19-31-18_0.csv'
+path_dir_01 = 'ATE_EEG_recordings\\off_proband_01_2024-02-02_12-11-33'
+name_file_01 = 'BrainFlow-RAW_2024-02-02_12-11-33_0.csv'
 session_id_01 = "off_proband_01"
 
-path_dir_02 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_02_2024-02-02_12-11-33'
-name_file_02 = 'BrainFlow-RAW_2024-02-02_12-11-33_0.csv'
+path_dir_02 = 'ATE_EEG_recordings\off_proband_02_2024-02-05_21-16-18'
+name_file_02 = 'BrainFlow-RAW_2024-02-05_21-16-18_0.csv'
 session_id_02 = "off_proband_02"
 
-path_dir_03 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_03_2024-02-03_18-07-41'
-name_file_03 = 'BrainFlow-RAW_2024-02-03_18-07-41_0.csv'
+path_dir_03 = 'ATE_EEG_recordings\off_proband_03_2024-02-01_19-31-18'
+name_file_03 = 'BrainFlow-RAW_2024-02-01_19-31-18_0.csv'
 session_id_03 = "off_proband_03"
 
-path_dir_04 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_04_2024-02-05_21-16-18'
-name_file_04 = 'BrainFlow-RAW_2024-02-05_21-16-18_0.csv'
+path_dir_04 = 'ATE_EEG_recordings\off_proband_04_2024-02-03_18-07-41'
+name_file_04 = 'BrainFlow-RAW_2024-02-03_18-07-41_0.csv'
 session_id_04 = "off_proband_04"
 
-path_dir_05 = r'C:\\Users\\dennis\\Documents\\OpenBCI_GUI\\Recordings\\off_proband_05_2024-02-09_11-30-48'
+path_dir_05 = 'ATE_EEG_recordings\off_proband_05_2024-02-09_11-30-48'
 name_file_05 = 'BrainFlow-RAW_2024-02-09_11-30-48_0.csv'
 session_id_05 = "off_proband_05"
-
 
 
 def get_offline_recording_sessions():
@@ -66,11 +67,11 @@ def get_offline_recording_sessions():
     """    
     
     filepaths = []
-    filepaths.append((session_id_01, os.path.join(path_dir_01, name_file_01)))
-    filepaths.append((session_id_02, os.path.join(path_dir_02, name_file_02)))
-    filepaths.append((session_id_03, os.path.join(path_dir_03, name_file_03)))
-    filepaths.append((session_id_04, os.path.join(path_dir_04, name_file_04)))
-    filepaths.append((session_id_05, os.path.join(path_dir_05, name_file_05)))
+    filepaths.append((session_id_01, os.path.join(curr_dir, path_dir_01, name_file_01)))
+    filepaths.append((session_id_02, os.path.join(curr_dir, path_dir_02, name_file_02)))
+    filepaths.append((session_id_03, os.path.join(curr_dir, path_dir_03, name_file_03)))
+    filepaths.append((session_id_04, os.path.join(curr_dir, path_dir_04, name_file_04)))
+    filepaths.append((session_id_05, os.path.join(curr_dir, path_dir_05, name_file_05)))
 
     offline_recordings = []
 
