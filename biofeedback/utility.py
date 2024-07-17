@@ -20,12 +20,14 @@ def naive_peak_value_surround_checks(signal, peak_sample_locations, sample_check
         peak_height = signal[peak]
         checked_peak = peak
         for checkSample in check_range:
-            if signal[checkSample] > peak_height:
-                #print("ERROR!: peak at ", peak, "-th sample (", signal[peak], ") is lower than value (", signal[checkSample], ") of ", checkSample, "-th sample")
-                #print("MANUAL ARTIFCAT CORRECTION WAS EMPLOYED")
-                # change peak sample location to new maxima found
-                checked_peak = checkSample
-                peak_height = signal[checked_peak]
+            # assure that checking samples in check range stops at signal end
+            if checkSample < signal.size:
+                if signal[checkSample] > peak_height:
+                    #print("ERROR!: peak at ", peak, "-th sample (", signal[peak], ") is lower than value (", signal[checkSample], ") of ", checkSample, "-th sample")
+                    #print("MANUAL ARTIFCAT CORRECTION WAS EMPLOYED")
+                    # change peak sample location to new maxima found
+                    checked_peak = checkSample
+                    peak_height = signal[checked_peak]
         corrected_peak_locs.append(checked_peak)
     
     # convert output type to match input type
