@@ -1,17 +1,37 @@
+"""
+    Module description
+"""
+
 import numpy as np
 
-# function to perform ceiling division (a / b rounded up)
 def ceildiv(a, b):
+    """ceildiv performs ceiling division (a / b rounded up)
+
+    Args:
+        a (_type_): _description_
+        b (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     return -(a // -b)
 
 
 
-# func checks if values of peak samples are highest of surrounding samples (+/- 10 samples, equals 40 millis with
-# sampling rate of 250 Hz), i.e. check if each sample value around detected peak (+/- 10 samples) is highest, 
-# correct otherwise
-# TODO signal and peak_sample_locations must be numpy arrays? 
 
 def naive_peak_value_surround_checks(signal, peak_sample_locations, sample_check_range:int):
+    """naive_peak_value_surround_checks checks if values of peak samples are highest of surrounding samples (+/- 10 samples, equals 40 millis with
+    sampling rate of 250 Hz), i.e. check if each sample value around detected peak (+/- 10 samples) is highest, 
+    correct otherwise
+
+    Args:
+        signal (_type_): _description_
+        peak_sample_locations (_type_): _description_
+        sample_check_range (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
 
     corrected_peak_locs = []
 
@@ -39,8 +59,15 @@ def naive_peak_value_surround_checks(signal, peak_sample_locations, sample_check
     return corrected_peak_locs
 
 
-# TODO takes and outputs either list or ndarray
 def remove_NaN_padding(values):
+    """remove_NaN_padding removes NaN padding introduced by NeuroKit2
+
+    Args:
+        values (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
 
     values_without_NaN = []
     for element in values:
@@ -55,8 +82,12 @@ def remove_NaN_padding(values):
 
     return values_without_NaN
 
-# input two np.arrays
+
 def prune_onsets_and_offsets(onsets_R_list, offsets_R_list):
+    """ prune_onsets_and_offsets prunes on and offsets for two np.arrays 
+
+    """
+
     # ensure that epochs beginn with first R_Offset (hence, a noise_segment) ["begin condition"] and end with last R_Offset ["end condition"],
     # therefore, last detected QRS complex is included, while first QRS complex might be omitted!
     # remove NaN occurences to check ["begin condition"]
@@ -65,10 +96,10 @@ def prune_onsets_and_offsets(onsets_R_list, offsets_R_list):
     
     """TEST: assert that both onsets and offsets have same length """
     assert onsets_R_list.size == offsets_R_list.size, "onsets_R_list and offsets_R_list have not same length!"
-    """TEST: assert das nur max 2 NaN im Array (vorne und hinten TODO)"""
+    """TEST: assert that only 2 NaN values in array at max (back and front)"""
     assert np.count_nonzero(np.isnan(onsets_R_list)) <= 2
     assert np.count_nonzero(np.isnan(offsets_R_list)) <= 2
-    """TEST: assert das wenn eines der letzten/ersten Elemente exklusiv (XOR) NaN ist, folgt darauf das des anderen arrays als nächstes"""
+    """TEST: assert if first or last element is exclusively NaN (XOR), an element from the other array has to follow """
     if np.isnan(onsets_R_list[0]) and (not np.isnan(offsets_R_list[0])):
         assert offsets_R_list[0] < onsets_R_list[1]
     if np.isnan(offsets_R_list[0]) and (not np.isnan(onsets_R_list[0])):
@@ -78,7 +109,9 @@ def prune_onsets_and_offsets(onsets_R_list, offsets_R_list):
         assert offsets_R_list[-1] > onsets_R_list[1]
     if np.isnan(offsets_R_list[-1]) and (not np.isnan(onsets_R_list[-1])):
         assert onsets_R_list[0] < offsets_R_list[1]
-    """TEST: TODO assert das ON-OFF-ON-OFF Abfolge existiert
+    
+    """FOR TEST PURPOSES ONLY
+    TEST:assert that ON-OFF-ON-OFF sequence exists
     pruned_onsets = onsets_R_list[~np.isnan(onsets_R_list)]
     pruned_offsets = offsets_R_list[~np.isnan(offsets_R_list)]
     if pruned_onsets[0] > pruned_offsets[0]:
@@ -102,7 +135,7 @@ def prune_onsets_and_offsets(onsets_R_list, offsets_R_list):
         onsets_R_list = onsets_R_list[:-1]  
         # assert new invariant: offset.size = onset.size + 1
         # assert invariant 2)
-        #assert onsets_R_list.size + 1 == offsets_R_list.size, "offsets_R_list is not 1 greater than onsets_R_list!"
+        # assert onsets_R_list.size + 1 == offsets_R_list.size, "offsets_R_list is not 1 greater than onsets_R_list!"
         assert (onsets_R_list[-1] < offsets_R_list[-1])
         # check for preceding onset, otherwise also omit the second last offset
         if offsets_R_list[-2] > onsets_R_list[-1]:
@@ -120,11 +153,11 @@ def prune_onsets_and_offsets(onsets_R_list, offsets_R_list):
         assert (onsets_R_list[0] > offsets_R_list[0])
         assert (onsets_R_list[0] < offsets_R_list[1])
     
-    # TODO check size invariant (otherwise delete what????)
+    # check size invariant 
     assert (onsets_R_list.size + 1 == offsets_R_list.size)
       
 
-    """TEST: assert das ON-OFF-ON-OFF Abfolge existiert"""
+    """TEST:assert that ON-OFF-ON-OFF sequence exists"""
     if onsets_R_list[0] > offsets_R_list[0]:
         for idx, onset in enumerate(onsets_R_list):
             assert onsets_R_list[idx] > offsets_R_list[idx]

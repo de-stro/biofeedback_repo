@@ -1,3 +1,7 @@
+"""
+    Module description
+"""
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,7 +19,7 @@ PEAK_DETECT_VAR_TO_EVAL = 16
 
 # ica parameters
 PC_AMOUNT_TO_CONSIDER = 7
-ICA_MAX_ITERATIONS = 1
+ICA_MAX_ITERATIONS = 2
 
 def main():
 
@@ -29,7 +33,7 @@ def main():
     for recording_session in data_off.get_offline_recording_sessions():
 
         sampling_rate = recording_session.get_description()["sampling_rate"]
-        # TODO does it make difference if ECG is also processed or not?
+        
         (session_data, prepo_time) = recording_session.get_preprocessed_data()
         # keep track of brainflow prepo times
         brainflow_prepo_times.append(prepo_time)
@@ -56,11 +60,9 @@ def main():
         segmented_recording_sessions.append((recording_session, segments))
     
     segmentation_time = time.time() - start_segmentation_time
-
-    """TEST: if all segments have the same length"""
-
     
-    """ TEST: if segmentation was done correctly
+    """ FOR TEST PURPOSES ONLY 
+        TEST: if segmentation was done correctly
     for (session, segments) in segmented_recording_sessions:
         for idx, segment in enumerate(segments):
 
@@ -80,13 +82,6 @@ def main():
     ### APPROACH 1: NAIVE IMPLEMENTATION
 
     start_evaluation_time_naive = time.time()
-
-    # allocate 3D (4D) data matrices to store results of all recording sessions
-    # TODO make it numpy arrays
-    # combined performance evaluation
-    total_ica_matrix = []
-    total_ic_select_matrix = []
-    total_peak_detect_matrix = []
 
 
     # employ ICA and peak detection on every segment of every recording session
@@ -114,8 +109,6 @@ def main():
         sesh_ica_explained_variances_matrix = []
         sesh_ica_ecgICs_matrix = []
 
-        # OMIT THIS 
-        # sesh_ica_dicts_matrix = []
 
         # setup list of ref ecg (we have one for each segement)
         sesh_ref_ecg = []
@@ -123,21 +116,6 @@ def main():
 
         # apply ICA and store metrics for each segment of the recording session
         for seg_idx, segment in enumerate(segments):
-            """ TEST PURPOSE for shorter ICA eval um peak_detect zu debuggen
-            if seg_idx < 4:
-                continue
-            #################
-        
-            ##################
-            if seg_idx >= 3: 
-                break
-            ##################
-        
-            ##################
-            if seg_idx >= 2: 
-                break
-            ##################
-            """
 
             seg_ref_ecg_signal = segment[2]
             seg_eeg_signals = segment[3:]
@@ -219,8 +197,9 @@ def main():
             # apply peak detection and store metrics for each ECG-related IC (ie. executed ICA-Variant) of the segment
             # (hence, traversing ICA variant/ECG-related IC -wise)
             for comp_idx, ecg_component in enumerate(row):
-                "TEST"
-                print("TEST EVAL of ", comp_idx, " component! In the ", row_idx, "-th Segment")
+
+                """ FOR TEST PURPOSES ONLY """
+                print("TEST: EVAL of ", comp_idx, " component! In the ", row_idx, "-th Segment")
 
                 peakDetect_dicts = peak_detect.evaluate_all_peak_detect_methods_on_component(ecg_component, seg_ref_ecg_signal)
 
@@ -305,7 +284,7 @@ def main():
         
         
         # extract average computation time and SNRs for each ICA algorithm (with standard deviation)
-        # (averaged over all segments)
+        # (averaged over all segments, rounded to one or two decimals, time converted in millis)
 
         sesh_avg_mneRawObjCreate_times_millis_ICAs = []
         sesh_avg_mneFiltering_times_millis_ICAs = []
@@ -433,8 +412,6 @@ def main():
         sesh_SD_whole_TPs_combined_PD = []
         sesh_SD_SE_combined_PD = []
 
-        #sesh_avg_jitterScore_combined_PD = []
-        #sesh_avg_F1score_combined_PD = []
 
         # extract the average peak detection metrics for each ICA x PD combination
         for pd_idx, pd_method in enumerate(np.array(sesh_pd_compTimes_matrix).T):
@@ -591,13 +568,8 @@ def main():
         print("§§§TEST§§§ Evaluation for all recordings took in total: §§§")
         print(segmentation_time, " (segmentation time in sec)")
         print(evaluation_time_naive, " (evaluation time in sec)")
-        # preprocess data appropriately for ICA
+        
 
-        # select ECG-related component (resulting from ICA)
-
-        # employ R-peak detection on timeseries of ECG-related IC
-
-        # evaluate feasibility of all combinations of MNE.ICA x Neurokit.Peak-Detection-Methods 
 
         # extract average computation time and peak detection metrics for each peak detection algorithm (with standard deviation)
         # (averaged over all segments) 
@@ -650,8 +622,6 @@ def main():
         # extract average displacement amount and average displacements in samples for each pd method
         # (averaged over all segments and ICA-Results (ECG-related ICs))
         
-        # TEST
-        #print("Shape of Displacement Matrix ", np.array(sesh_pd_displacements_matrix, dtype=list).shape)
 
         # extract average displacements in samples (averaged over all segments)
         for pd_idx, pd_method in enumerate(np.array(sesh_pd_displacements_matrix, dtype=list).T):
@@ -694,6 +664,7 @@ def main():
         print(pd.DataFrame(np.array(sesh_avg_SE__single_PDs), index=peak_detect_names, columns=col_labels))
 
 
+    # information for data analysis report
     print("RESULTS REPORT FOR")
     print("Proband_03")
     print("ICA_iterations: ", ICA_MAX_ITERATIONS)

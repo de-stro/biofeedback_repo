@@ -22,15 +22,18 @@ board_id = BoardIds.CYTON_BOARD
 sampling_rate = BoardShim.get_sampling_rate(board_id)
 componentAmountConsidered = 7
 
-# Overview of TODO
-# TODO 1: Error Handling (weiterreichen, wo Verantwortlichkeiten?)
-# TODO 2: Naive Peak Correction für Ground Truth ??
-# TODO 3: Kaputte Neurokit Methoden checken (-> Neurokit2 import updaten?)
-# TODO 4: Testfälle schreiben wo sinnvoll (insb segmenting und metric calculation)
-# TODO 5: perform_peak_detection Service Methode implementieren
-# TODO 6: Chose PD method based on quality metrics?
 
 def segment_peaks_equidistant_with_ref_peaks(ref_peaks_array, sig_peaks_array):
+    """segment_peaks_equidistant_with_ref_peaks segments a signal array in segments with boundries
+    equidistiant to reference peaks
+
+    Args:
+        ref_peaks_array (_type_): _description_
+        sig_peaks_array (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     segments = []
     ref_peaks_pos = np.nonzero(ref_peaks_array)[0]
     last_end_idx = 0
@@ -53,14 +56,10 @@ def segment_peaks_equidistant_with_ref_peaks(ref_peaks_array, sig_peaks_array):
     return segments
 
 
-
-
 def calculate_metrics_with_reference(ref_peaks, sig_peaks):
-    """calculate_metrics_with_reference calculates
+    """ calculate_metrics_with_reference calculates the peak detection errors and performance metrics using 
+        the reference ECG
     """
-    # TODO Wie errors handeln? in welcher Funktion? Eher high level funktionen die
-    # mit den konkreten methoden umgehen (hier wird angenommen alles passt)
-
     peak_segments = segment_peaks_equidistant_with_ref_peaks(ref_peaks, sig_peaks)
 
     true_hits = 0
@@ -72,11 +71,8 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
     for (ref_segment, signal_segment) in peak_segments:
 
 
-        # TODO ASSERT ref_segment contains exactly one peak (1) and rest is zeros!)
-        # TODO otherwise raise error or skip segment (???)
+        # ASSERT ref_segment contains exactly one peak (1) and rest is zeros!)
         assert np.count_nonzero(ref_segment) == 1, "ERROR, REF_SEGMENT contains not single peak"
-        # if np.count_nonzero(ref_segment) != 1:
-            # raise Exception("ERROR, REF_SEGMENT contains not single peak")
 
         # check if *truly* a miss / false negative (no peak in signal segment whatsoever) 
         if np.count_nonzero(signal_segment) == 0:
@@ -111,16 +107,15 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
     # calculate average over all jitter values (including peaks with zero jitter)
     avg_jitter_millis = np.mean(millis_jitter_values)
 
-    # calculate jitter score according to TODO PAPER Von BERND PORR over all the segments 
+    # calculate jitter score according to Porr et al. (2024) over all the segments 
     jitter_score = 1 / (1 + (avg_jitter_millis) / 12)
 
-    # calculate the F_1 score over all segments TODO according to BERN PORR PREPRINT
+    # calculate the F_1 score over all segments according to  Porr et al. (2024)
     #assert (true_hits + false_positives + false_misses) != 0
     assert (true_hits + len(sample_displacements) + false_positives + false_misses) != 0
     
     amount_true_positives = true_hits + len(sample_displacements)
     try:
-        #f_1_score = (2 * true_hits) / ((2 * true_hits) + false_positives + false_misses)
         f_1_score = (2 * amount_true_positives) / ((2 * amount_true_positives) + false_positives + false_misses)
     except:
         error_msg = traceback.format_exc()
@@ -128,19 +123,14 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
         print("Calculating F_1 Score, an Error occured!")
         print(error_msg)
 
-    # calculate the JF-score (in %) according to TODO PAPER BERN PORR 
+    # calculate the JF-score (in %) according to  Porr et al. (2024)
     jf_score = f_1_score * jitter_score * 100
     
 
-    """ TODO Omit this score """
-    # NOTE Da sensitivity nur true hits und misses berücksichtigt,
-    # es aber vorkommen kann das beides null ist (da alles peak displacements sind)
-    # und dadurch divide by zero ERRROR (weil wir mehr als nur true misses betrachten)
     # calculate further metrics 
     # sensitivity (in %) here regards only (possibly displaced) hits and 
     # misses (with dynamic tolerance window of half distance to next beat)
     try:
-        #sensitivity = true_hits / (true_hits + true_misses)
         sensitivity = (amount_true_positives / (amount_true_positives + false_misses)) * 100
     except:
         sensitivity = 0
@@ -171,8 +161,10 @@ def calculate_metrics_with_reference(ref_peaks, sig_peaks):
 
 
 def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
+    """ evaluate_all_peak_detect_methods_on_component profiles all R-peak detection methods of NeuroKit2
+    on the observation segment
+    """
 
-    # TODO variablen auslagern in methoden rumpf
     # first peak correction by neurokit
     neurokit_peak_correction = True
     # afterwards naive peak sample value check / correction
@@ -180,9 +172,7 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
 
     ################ Parameterize and Profile NeuroKit2. Peak-Detection Algorithms ################################
     # setup dicts for each neurokit peak-detection algorithm (include version with cleaned input if provided by NeuroKit2)
-    # TODO (w/ and w/o cleaned data, if applicable) -> macht das Sinn, das jeweils mit und ohne?
-    # TODO Parameterize the methods independently??? -> geht über Scope hinaus
-    # TODO Untersuche Neurokit Fehler bei Benutzung mancher Methoden
+    # (w/ and w/o cleaned data, if applicable)
     peakDetect_dicts = [
         {"method_id": "dirty_neurokit", "method": "neurokit", "clean": False},
         {"method_id": "clean_neurokit", "method": "neurokit", "clean": True},
@@ -190,65 +180,52 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
         {"method_id": "clean_pantompkins1985", "method": "pantompkins1985", "clean": True},
         {"method_id": "dirty_hamilton2002", "method": "hamilton2002", "clean": False},
         {"method_id": "clean_hamilton2002", "method": "hamilton2002", "clean": True},
-        # TODO BUG gamboa2008 Fehler untersuchen (index out of bounds) 
-        # wirft aktuell keine Fehler -> TODO NOCH AKTUELL?? JA noch aktuell !!
-        #TODO TODO 
+        # exclude because buggy
         #{"method_id": "dirty_gamboa2008", "method": "gamboa2008", "clean": False},
-        # BUG Clean gamboa2008 wirft assertion error in calc_metrics_with_ref weil REF_SEG
-        # nicht single peak contained (same for dirty gamboa)
         #{"method_id": "clean_gamboa2008", "method": "gamboa2008", "clean": True},
         {"method_id": "dirty_elgendi2010", "method": "elgendi2010", "clean": False},
         {"method_id": "clean_elgendi2010", "method": "elgendi2010", "clean": True},
-        #TODO TODO 
-        # ZACKA
         {"method_id": "dirty_engzeemod2012", "method": "engzeemod2012", "clean": False},
-        #TODO TODO
-        # ZACKA
         {"method_id": "clean_engzeemod2012" , "method": "engzeemod2012", "clean": True},
         {"method_id": "dirty_kalidas2017", "method": "kalidas2017", "clean": False},
-        # TODO Remark: Only dummy for cleaning method of kalidas2017 provided by neurokit2, 
-        # i.e not fully implemented yet (as of 16.05.2024)
+        # NOTE: Only dummy for cleaning method of kalidas2017 provided by neurokit2, 
+        # i.e not fully implemented yet
         #{"method_id": "clean_kalidas2017", "method": "kalidas2017", "clean": True},
-        # TODO emrich2023 Fehler untersuchen (not implemented bzw. "vg" method (nur für clean?))
-        # -> UPDATE THE NEUROKIT IMPORT ??
-        # BUG DIRTY EMRICH wirft Fehler
-        # "NeuroKit error: ecg_findpeaks(): 'emrich2023' not implemented"
+        # # Exclude as error is raised: "NeuroKit error: ecg_findpeaks(): 'emrich2023' not implemented"
         #{"method_id": "dirty_emrich2023" , "method": "emrich2023", "clean": False},
-        # BUG Clean EMRICH wirft Fehler 
-        # "NeuroKit error: ecg_clean(): 'method' should be one of 'neurokit', 'biosppy', 
+        # Exclude as error is raised: "NeuroKit error: ecg_clean(): 'method' should be one of 'neurokit', 'biosppy', 
         # 'pantompkins1985', 'hamilton2002', 'elgendi2010', 'engzeemod2012', 'templateconvolution'."
         #{"method_id": "clean_emrich2023", "method": "emrich2023", "clean": True},
 
         # detection methods with no cleaning method provided yet (by neurokit2) or 
         # not forseen at all (by implementation authors)
         {"method_id": "zong2003", "method": "zong2003", "clean": False},
-        # BUG PERSISTENT: Martinez2004 findet keine Beats in REF_SIGNAL (mit nk.ecg_peaks)
-        # damit enthält ref_results["ECG_R_PEAKS"] nur Nullen und nk.ecg_peaks und
-        # calc_metrics_with_ref werfen Fehler!!
+        # Exclude since persistently buggy
         #{"method_id": "martinez2004", "method": "martinez2004", "clean": False},
         {"method_id": "christov2004", "method": "christov2004", "clean": False},
         {"method_id": "nabian2018" , "method": "nabian2018", "clean": False},
         {"method_id": "rodrigues2021", "method": "rodrigues2021", "clean": False},
-        # TODO TODO BUG Manikandan gibt regelmäßig index out of bounds Fehler
+        # Exclude since persistently buggy
         #{"method_id": "manikandan2012", "method": "manikandan2012", "clean": False} 
         {"method_id": "promac", "method": "promac", "clean": False}
-        
         ]
 
     # execute and profile neurokit peak-detection algorithms for REF ECG signal as ground truth
 
     ### Delineate/Extract R-peaks of ECG_REF for ground truth peak labeling
     # approach 1:   use respective peak-detection method on ecg_reference
-    #               TODO adress limitation: metric evaluation script only measures deterioration of peak detection method
+    #               limitation: metric evaluation script only measures deterioration of peak detection method
     #               when using dirty signal (ecg_ic) instead of ECG refrence signal
     #
     # approach 2:   use respective peak-detection method on ecg_reference and employ artifact correction provided by neurokit2 
-    #               (TODO CITE with artifact correction using the method of Lipponen & Tarvainen (2019) implemented by neurokit2)
+    #               (with artifact correction using the method of Lipponen & Tarvainen (2019) implemented by neurokit2)
     # further:      additionally perform "naive" peak sample checking, i.e if sample value is highest in area of 80ms around the peak 
-    #               (+/- 40ms, so +/-10 samples at 250Hz) (since QRS duration in healthy adult lasts around 80-100ms TODO CITE wikipedia)
+    #               (+/- 40ms, so +/-10 samples at 250Hz) (since QRS duration in healthy adult lasts around 80-100ms
 
     for method_dict in peakDetect_dicts:
-        print("TESTEST: PEAK DETECT ON REF SIGNAL BY METHOD: ", method_dict["method_id"])
+        """ FOR TEST PURPOSES ONLY """
+        print("TEST: PEAK DETECT ON REF SIGNAL BY METHOD: ", method_dict["method_id"])
+
         if method_dict["clean"]:
             time_start = time.time()
             ref_signal = nk.ecg_clean(ecg_sync_ref, sampling_rate=sampling_rate, method=method_dict["method"])
@@ -262,7 +239,6 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
 
         # if desired, additionally perform "naive" peak sample checking / correction, by checking surrounding
         # samples for (higher) values
-        # TODO Determine appropriate check range for check/correction (in samples)
         if naive_peak_sample_correction:
             # fig_peaks_before = nk.events_plot(ref_info["ECG_R_Peaks"], ref_signal, color = "r")
             ref_info["ECG_R_Peaks"] = util.naive_peak_value_surround_checks(ref_signal, ref_info["ECG_R_Peaks"], 40)
@@ -276,6 +252,7 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
     # execute and profile neurokit peak-detection algorithms on dirty signal for comparision
     # do not use any artifact / peak correction whatsoever (for comparability)
     for method_dict in peakDetect_dicts:
+        """ FOR TEST PURPOSES ONLY """
         print("TESTEST: PEAK DETECT ON ECG_IC_SIGNAL BY METHOD: ", method_dict["method_id"])
         if method_dict["clean"]:
             time_start = time.time()
@@ -291,47 +268,17 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
         method_dict["sig_info"] = sig_info
         method_dict["sig_exec_time"] = time_total
 
-    """
-    # setup list of peak detection metric results for the component
-    comp_pd_compTimes = []
-    comp_pd_TPs = []
-    comp_pd_FNs = []
-    comp_pd_FPs = []
-    comp_pd_displacements = [] # this is a list of lists
-    comp_pd_jitterscores = []
-    comp_pd_F1scores = []
-    comp_pd_JFscores = []
-    """
-
 
     # calculate quality metrics regarding comparision to ground truth
     for method_dict in peakDetect_dicts:
+        """ FOR TEST PURPOSES ONLY """
         print("TESTEST: CALC METRICS BY METHOD: ", method_dict["method_id"])
         gnd_truth_beats = np.array((method_dict["gnd_truth_results"])["ECG_R_Peaks"])
         gnd_truth_beat_amount = np.count_nonzero(gnd_truth_beats)
         signal_beats = np.array((method_dict["sig_results"])["ECG_R_Peaks"])
         signal_beat_amount = np.count_nonzero(signal_beats)
-        # BUG FOR "martinez2004" gnd_truth_beats contains only ZEROS !!
         metrics_dict = calculate_metrics_with_reference(gnd_truth_beats, signal_beats)
-        #true_hits, false_misses, false_positives, sample_displacements, jitter_score, f_1_score, jf_score = calculate_metrics_with_reference(
-        #    gnd_truth_beats, signal_beats)
-
-        """ 
-        metrics_dict = {
-        "true_positives": true_hits,
-        "false_negatives": false_misses,
-        "false_positives": false_positives,
-        "peak_displacements_sample" : sample_displacements,
-        #"amount_displacements": len(sample_displacements),
-        #"mean_displacement_sample": np.mean(sample_displacements),
-        #"std_displacement_sample": np.std(sample_displacements),
-        #"avg_jitter_value_millis": avg_jitter_millis,
-        "jitter_score": jitter_score,
-        "f_1_score": f_1_score,
-        "jf_score": jf_score,
-        #"sensitivity": sensitivity
-        }
-        """
+      
         metrics_dict["compTime_sec"] =  method_dict["sig_exec_time"]
         
         # store quality metrics
@@ -341,100 +288,3 @@ def evaluate_all_peak_detect_methods_on_component(ecg_ic, ecg_sync_ref):
     
 
 
-def main():
-
-    ############################ get data and perform ICA on it (analogous to ICA script)
-    # TODO Outsource this completely to ICA script (Interface for ICA-ing needed)
-    
-    # load and select sample / window from test recordings (eeg and ecg channels seperately)
-    # initiate test recording data objects as list
-    dataRecordings = []
-    filepaths = offD.getFilepaths()
-    '''
-    for path in filepaths:
-        dataRecordings.append(RecordingData(path))
-    '''
-    dataRecordings.append(offD.RecordingSession(filepaths[1]))
-    ########################################
-    
-    ### perform offline ICA Analysis on loaded and (pre-) filtered (BrainFlow) EEG data of Test Recording No.1
-    rawEEG = icascript.createObjectMNE('eeg', prepro.preprocessData(dataRecordings[0].getEEG()))
-    rawECG = icascript.createObjectMNE('ecg', prepro.preprocessData(dataRecordings[0].getECG()))
-
-    # get user template from ECG recording (not simulated)
-    userTemplate = mne.io.Raw.copy(rawECG).crop(tmin=360.0, tmax=420.0)
-
-
-    # Here we'll crop to 'tmax- tmin' seconds (240-180 = 60 seconds)
-    # TODO Rausfinden warum float_NaN to int conversion Fehler, wenn tmin 300 und tmax 360
-    # TODO Rausfinden warum broadcast / shape error wenn 
-    rawEEG.crop(tmin = 180.0, tmax=240.0)
-    rawECG.crop(tmin = 180.0, tmax=240.0)
-    # apply bandpass filter(?) on EEG data (before ICA) to prevent slow downward(?) shift (?)
-    filt_rawEEG = rawEEG.copy().filter(l_freq=1.0, h_freq=50.0)
-
-    # apply ICA on the filtered raw EEG data
-    global componentAmountConsidered
-
-    # perform ICA comparing the different algorithmic performance on the data (regarding pTp SNR of ECG-related IC)
-    method_key, ica_dicts = icascript.choseBestICA(rawEEG, rawECG, amountICs = componentAmountConsidered, maxIter = "auto")
-    bestICA = ica_dicts[method_key]
-
-    # TEST plot results (fusedECG) to visually check results (time series of ICs) of best ICA chosen
-    
-    rawResult = bestICA["sources"]
-    #rawECG.add_channels([rawResult])
-    #rawECG.plot(title = "rawECG (fused)")
-
-    # extract components to perform cross-correlation on
-    components = []
-    timeseries = rawResult.get_data()
-    for component in timeseries:
-        components.append(component.flatten())
-
-    ecg_related_index = bestICA["ECG_related_index_from_0"]
-    ecg_related_timeseries = bestICA["ECG_related_Timeseries"]
-    ecg_reference = (rawECG.get_data()).flatten()
-
-    ################ Parameterize and Profile NeuroKit2. Peak-Finding Algorithms ################################
-
-    print("################################################################################")
-    print("NEEEEEEEEEEEEEEEWWWWWWWWWWWWWWWWWWWWWWWWWWWW MEEEEEEEEEEEEEEEEEEETHHHHHHHHHHHHHH")
-
-    methods_dict = evaluate_all_peak_detect_methods_on_component(ecg_related_timeseries, ecg_reference)
-    for algo_name, algo_dict in methods_dict.items():
-        metrics_dict = algo_dict["metrics_dict"]
-        print("---------------------------------------------------------------------------------------")
-        print("---------------------------------------------------------------------------------------")
-        print("##########", algo_name, "##########")
-        ###############
-        print("### TIMING RESULTS ###")
-        print("Ground truth took in total (sec): ", algo_dict["gnd_truth_exec_time"])
-        print("Dirty signal took in total (sec): ", algo_dict["sig_exec_time"])
-        ###############
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-        print("+++++++++++ COMPARISION METRICS +++++++++++++++++++++++")
-        print("REF BEAT COUNT: ", np.count_nonzero((algo_dict["gnd_truth_results"])["ECG_R_Peaks"]))
-        print("SIG BEAT COUNT: ", np.count_nonzero((algo_dict["sig_results"])["ECG_R_Peaks"]))
-        print("TRUE Positives total amount: ", metrics_dict["true_positives"])
-        print("True Misses total amount: ", metrics_dict["false_negatives"])
-        print("True False Positives total amount: ", metrics_dict["false_positives"])
-        print("Peak displacements total amount: ", metrics_dict["amount_displacements"])
-        print("Sample Displacement Mean: ", metrics_dict["mean_displacement_sample"])
-        print("Sample Displacement Standard Deviation: ", metrics_dict["std_displacement_sample"])
-        print("Jitter Value (Millis) Average: ", metrics_dict["avg_jitter_value_millis"])
-        print("Jitter Score: ", metrics_dict["jitter_score"])
-        print("F_1 Score: ", metrics_dict["f_1_score"])
-        print("Resulting JF_Score: ", metrics_dict["jf_score"])
-        print("Sensitivity reported: ", metrics_dict["sensitivity"])
-        print("---------------------------------------------------------------------------------------")
-        print("---------------------------------------------------------------------------------------")
-
-
-
-
-    # TODO Implement Method Choosing based on Quality Metrics
-    
-    
-if __name__ == "__main__":
-    main()
